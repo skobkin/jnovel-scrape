@@ -1,8 +1,8 @@
 package app
 
 import (
-	"github.com/skobkin/jnovels-parser/internal/model"
-	"github.com/skobkin/jnovels-parser/internal/util"
+	"git.skobk.in/skobkin/jnovel-scrape/internal/model"
+	"git.skobk.in/skobkin/jnovel-scrape/internal/util"
 )
 
 // FilterStats captures how many posts were removed per filter type.

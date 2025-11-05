@@ -10,10 +10,10 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/skobkin/jnovels-parser/internal/collect"
-	"github.com/skobkin/jnovels-parser/internal/httpx"
-	"github.com/skobkin/jnovels-parser/internal/markdown"
-	"github.com/skobkin/jnovels-parser/internal/model"
+	"git.skobk.in/skobkin/jnovel-scrape/internal/collect"
+	"git.skobk.in/skobkin/jnovel-scrape/internal/httpx"
+	"git.skobk.in/skobkin/jnovel-scrape/internal/markdown"
+	"git.skobk.in/skobkin/jnovel-scrape/internal/model"
 )
 
 // Run executes the scraper using the provided configuration.

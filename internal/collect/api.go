@@ -13,8 +13,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/skobkin/jnovels-parser/internal/model"
-	"github.com/skobkin/jnovels-parser/internal/util"
+	"git.skobk.in/skobkin/jnovel-scrape/internal/model"
+	"git.skobk.in/skobkin/jnovel-scrape/internal/util"
 )
 
 // FetchAPI crawls posts using the WordPress REST API.

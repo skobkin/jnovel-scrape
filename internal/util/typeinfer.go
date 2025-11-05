@@ -3,7 +3,7 @@ package util
 import (
 	"strings"
 
-	"github.com/skobkin/jnovels-parser/internal/model"
+	"git.skobk.in/skobkin/jnovel-scrape/internal/model"
 )
 
 var typeKeywords = map[model.PostType][]string{

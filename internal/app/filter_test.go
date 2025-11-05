@@ -4,7 +4,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/skobkin/jnovels-parser/internal/model"
+	"git.skobk.in/skobkin/jnovel-scrape/internal/model"
 )
 
 func TestFilterPosts_VolumeFilterExcludesBlanks(t *testing.T) {

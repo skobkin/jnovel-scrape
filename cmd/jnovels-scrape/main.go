@@ -4,7 +4,7 @@ import (
 	"context"
 	"os"
 
-	"github.com/skobkin/jnovels-parser/internal/app"
+	"git.skobk.in/skobkin/jnovel-scrape/internal/app"
 )
 
 func main() {

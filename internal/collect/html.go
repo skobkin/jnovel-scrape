@@ -12,9 +12,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/skobkin/jnovels-parser/internal/httpx"
-	"github.com/skobkin/jnovels-parser/internal/model"
-	"github.com/skobkin/jnovels-parser/internal/util"
+	"git.skobk.in/skobkin/jnovel-scrape/internal/httpx"
+	"git.skobk.in/skobkin/jnovel-scrape/internal/model"
+	"git.skobk.in/skobkin/jnovel-scrape/internal/util"
 )
 
 const fallbackUserAgent = "jnovels-scrape/1.0 (+https://example.com/contact)"

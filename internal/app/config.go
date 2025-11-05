@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/skobkin/jnovels-parser/internal/model"
+	"git.skobk.in/skobkin/jnovel-scrape/internal/model"
 )
 
 const (

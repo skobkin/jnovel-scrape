@@ -5,8 +5,8 @@ import (
 	"io"
 	"time"
 
-	"github.com/skobkin/jnovels-parser/internal/model"
-	"github.com/skobkin/jnovels-parser/internal/util"
+	"git.skobk.in/skobkin/jnovel-scrape/internal/model"
+	"git.skobk.in/skobkin/jnovel-scrape/internal/util"
 )
 
 // WriteTable writes the Markdown output to the provided writer.

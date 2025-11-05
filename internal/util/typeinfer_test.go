@@ -3,7 +3,7 @@ package util
 import (
 	"testing"
 
-	"github.com/skobkin/jnovels-parser/internal/model"
+	"git.skobk.in/skobkin/jnovel-scrape/internal/model"
 )
 
 func TestInferType(t *testing.T) {

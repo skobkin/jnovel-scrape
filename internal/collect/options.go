@@ -3,7 +3,7 @@ package collect
 import (
 	"time"
 
-	"github.com/skobkin/jnovels-parser/internal/httpx"
+	"git.skobk.in/skobkin/jnovel-scrape/internal/httpx"
 )
 
 // Logger is the minimal logging interface expected by collectors.
