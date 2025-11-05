@@ -13,13 +13,27 @@ steps:
           echo "$gofmt_out" >&2
           exit 1
         fi
-
+  - name: gomodtidy
+    image: golang:1.25-alpine
+    commands:
+      - go mod tidy
+      - git diff --exit-code go.mod go.sum
   - name: govet
     image: golang:1.25-alpine
     commands:
       - go vet ./...
-
-  - name: gotest
+  - name: gotest-race
+    image: golang:1.25
+    commands:
+      - go test ./... -race
+  - name: coverage
     image: golang:1.25-alpine
     commands:
-      - go test ./...
+      - go test ./... -coverprofile=coverage.out
+      - go tool cover -func=coverage.out
+  - name: govulncheck
+    image: golang:1.25-alpine
+    commands:
+      - go install golang.org/x/vuln/cmd/govulncheck@latest
+      - export PATH="$PATH:$(go env GOPATH)/bin"
+      - govulncheck ./...
