@@ -1,6 +1,11 @@
 package app
 
 import (
+	"bytes"
+	"io"
+	"os"
+	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -103,5 +108,41 @@ func TestApplyGroupingWithExtra(t *testing.T) {
 	groupedDesc := applyGrouping(posts, GroupTitle, GroupSortDesc)
 	if groupedDesc[0].VolumeExtra != "Act 2" {
 		t.Fatalf("expected Act 2 first in desc, got %s", groupedDesc[0].VolumeExtra)
+	}
+}
+
+func TestWriteOutputToFile(t *testing.T) {
+	tmpDir := t.TempDir()
+	outPath := filepath.Join(tmpDir, "result.md")
+
+	cutoff := time.Date(2025, time.January, 1, 0, 0, 0, 0, time.UTC)
+	vol := 2.0
+	posts := model.Posts{
+		{
+			Title:  "Sample Story",
+			Volume: &vol,
+			Type:   model.TypeEPUB,
+			Date:   cutoff,
+			Link:   "https://example.com/sample-story",
+		},
+	}
+
+	logger := NewLogger(io.Discard)
+	cfg := Config{Cutoff: cutoff, OutputPath: outPath}
+
+	if err := writeOutput(cfg, posts, logger); err != nil {
+		t.Fatalf("writeOutput error: %v", err)
+	}
+
+	data, err := os.ReadFile(outPath)
+	if err != nil {
+		t.Fatalf("read output: %v", err)
+	}
+	content := string(data)
+	if !bytes.Contains(data, []byte("Generated from jnovels.com (cutoff: 2025-01-01)")) {
+		t.Fatalf("output missing header: %q", content)
+	}
+	if !strings.Contains(content, "| Sample Story | 2 | EPUB | 2025-01-01 | [link](https://example.com/sample-story) |") {
+		t.Fatalf("unexpected table row: %q", content)
 	}
 }
