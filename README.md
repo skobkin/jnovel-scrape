@@ -1,5 +1,7 @@
 # jnovels-scrape
 
+[![Build Status](https://ci.skobk.in/api/badges/skobkin/jnovel-scrape/status.svg)](https://ci.skobk.in/skobkin/jnovel-scrape)
+
 `jnovels-scrape` is a Go CLI that gathers the latest posts from [jnovels.com](https://jnovels.com), normalises their metadata, and generates a Markdown table of releases. The tool prefers the WordPress REST API and transparently falls back to HTML scraping when the API is unavailable.
 
 ## Features

@@ -1,0 +1,25 @@
+kind: pipeline
+type: docker
+name: ci
+
+steps:
+  - name: gofmt
+    image: golang:1.25-alpine
+    commands:
+      - gofmt_out="$(gofmt -l ./cmd ./internal)"
+      - |
+        if [ -n "$gofmt_out" ]; then
+          echo "The following files need gofmt:" >&2
+          echo "$gofmt_out" >&2
+          exit 1
+        fi
+
+  - name: govet
+    image: golang:1.25-alpine
+    commands:
+      - go vet ./...
+
+  - name: gotest
+    image: golang:1.25-alpine
+    commands:
+      - go test ./...
