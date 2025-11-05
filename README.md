@@ -26,7 +26,11 @@ This produces the `jnovels-scrape` binary in the current directory.
 The cutoff date (`--until`) is required and uses `YYYY-MM-DD`.
 
 ```sh
-./jnovels-scrape --until 2024-12-01 > releases.md
+# Simple run
+./jnovels-scrape --until 2024-12-01 --out releases.md
+
+# More advanced
+./jnovels-scrape --until 2025-01-01 --group title --type EPUB --out result.md
 ```
 
 Common flags:
