@@ -42,9 +42,9 @@ Common flags:
 | `--concurrency <int>` | Detail fetch concurrency for HTML fallback (default `4`). |
 | `--req-interval <duration>` | Minimum interval between every HTTP request (default `600ms`). |
 | `--limit-wait <duration>` | Wait time when the server rate limits without `Retry-After` (default `60s`). |
-| `--group <none|title>` | Group output rows before sorting (default `none`). |
-| `--group-sort <asc|desc>` | Sort order inside title groups when `--group=title` (default `asc`). |
-| `--mode <auto|api|html>` | Select fetch strategy. `auto` (default) tries the API before falling back to HTML. |
+| `--group <none\|title>` | Group output rows before sorting (default `none`). |
+| `--group-sort <asc\|desc>` | Sort order inside title groups when `--group=title` (default `asc`). |
+| `--mode <auto\|api\|html>` | Select fetch strategy. `auto` (default) tries the API before falling back to HTML. |
 
 ### Example
 
