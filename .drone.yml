@@ -16,8 +16,14 @@ steps:
   - name: gomodtidy
     image: golang:1.25-alpine
     commands:
+      - apk add --no-cache git
       - go mod tidy
-      - git diff --exit-code go.mod go.sum
+      - |
+        if [ -f go.sum ]; then
+          git diff --exit-code go.mod go.sum
+        else
+          git diff --exit-code go.mod
+        fi
   - name: govet
     image: golang:1.25-alpine
     commands:

@@ -24,7 +24,11 @@ jobs:
       - name: Check module tidiness
         run: |
           go mod tidy
-          git diff --exit-code go.mod go.sum
+          if [ -f go.sum ]; then
+            git diff --exit-code go.mod go.sum
+          else
+            git diff --exit-code go.mod
+          fi
       - name: Vet
         run: go vet ./...
       - name: Test (race)
