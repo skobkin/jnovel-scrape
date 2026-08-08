@@ -102,3 +102,43 @@ func TestConfigUnmarshalFromFlatMap(t *testing.T) {
 		t.Fatalf("LimitWait: got %v", cfg.LimitWait)
 	}
 }
+
+func TestParseArgsThroughKoanf_AllFlags(t *testing.T) {
+	args := []string{
+		"--until", "2025-02-01",
+		"--type", "epub,pdf",
+		"--title", "dragon",
+		"--volume", "3",
+		"--out", "result.md",
+		"--mode", "api",
+		"--group", "title",
+		"--group-sort", "desc",
+		"--max-pages", "10",
+		"--concurrency", "2",
+		"--req-interval", "150ms",
+		"--limit-wait", "300ms",
+	}
+
+	cfg, err := ParseArgs(args, nil)
+	if err != nil {
+		t.Fatalf("ParseArgs() unexpected error: %v", err)
+	}
+	if cfg.Cutoff.Format("2006-01-02") != "2025-02-01" {
+		t.Fatalf("Cutoff: got %v", cfg.Cutoff)
+	}
+	if len(cfg.TitleFilters) != 1 || cfg.TitleFilters[0] != "dragon" {
+		t.Fatalf("TitleFilters: got %v", cfg.TitleFilters)
+	}
+	if cfg.VolumeFilter == nil || *cfg.VolumeFilter != 3 {
+		t.Fatalf("VolumeFilter: got %v", cfg.VolumeFilter)
+	}
+	if cfg.Mode != ModeAPI {
+		t.Fatalf("Mode: got %v", cfg.Mode)
+	}
+}
+
+func TestParseArgsThroughKoanf_MissingUntilFails(t *testing.T) {
+	if _, err := ParseArgs([]string{"--type", "epub"}, nil); err == nil {
+		t.Fatalf("expected error when --until is missing")
+	}
+}
