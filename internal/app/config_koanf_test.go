@@ -144,10 +144,10 @@ func TestParseArgsThroughKoanf_MissingUntilFails(t *testing.T) {
 }
 
 func TestParseArgsEnvOverridesDefaults(t *testing.T) {
-	t.Setenv("JNOVEL_UNTIL", "2025-03-15")
-	t.Setenv("JNOVEL_TYPE", "manga")
-	t.Setenv("JNOVEL_MODE", "html")
-	t.Setenv("JNOVEL_MAX_PAGES", "7")
+	t.Setenv("JN_UNTIL", "2025-03-15")
+	t.Setenv("JN_TYPE", "manga")
+	t.Setenv("JN_MODE", "html")
+	t.Setenv("JN_MAX_PAGES", "7")
 
 	cfg, err := ParseArgs(nil, nil)
 	if err != nil {
@@ -168,8 +168,8 @@ func TestParseArgsEnvOverridesDefaults(t *testing.T) {
 }
 
 func TestParseArgsFlagOverridesEnv(t *testing.T) {
-	t.Setenv("JNOVEL_UNTIL", "2025-03-15")
-	t.Setenv("JNOVEL_MODE", "html")
+	t.Setenv("JN_UNTIL", "2025-03-15")
+	t.Setenv("JN_MODE", "html")
 
 	cfg, err := ParseArgs([]string{"--mode", "api"}, nil)
 	if err != nil {
@@ -186,8 +186,8 @@ func TestParseArgsFlagOverridesEnv(t *testing.T) {
 }
 
 func TestParseArgsEnvTitleCommaSplit(t *testing.T) {
-	t.Setenv("JNOVEL_UNTIL", "2025-03-15")
-	t.Setenv("JNOVEL_TITLE", "dragon,spice")
+	t.Setenv("JN_UNTIL", "2025-03-15")
+	t.Setenv("JN_TITLE", "dragon,spice")
 
 	cfg, err := ParseArgs(nil, nil)
 	if err != nil {

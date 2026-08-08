@@ -184,7 +184,7 @@ func loadConfig(fs *flag.FlagSet, args []string) (Config, error) {
 	return cfg, nil
 }
 
-// envKey maps an env-var name (e.g. "JNOVEL_TYPE") to a koanf key
+// envKey maps an env-var name (e.g. "JN_TYPE") to a koanf key
 // (e.g. "type") using the keys registry. The env provider in
 // v1.1.0 passes the full name (including the prefix) to the
 // callback, so we strip the prefix before lookup.
@@ -348,7 +348,7 @@ func configKeys() map[string]string {
 
 // envPrefix is prepended to every env-var name. Fixed for now; if a
 // configurable prefix is ever needed, expose it as a build flag.
-const envPrefix = "JNOVEL_"
+const envPrefix = "JN_"
 
 // unmarshalConfig fills a Config from a flat map. It is the one place
 // where the layered koanf instance is converted into a Config.
