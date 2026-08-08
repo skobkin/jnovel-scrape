@@ -17,3 +17,107 @@ func TestEscapePipes(t *testing.T) {
 		t.Fatalf("EscapePipes() = %q", got)
 	}
 }
+
+func TestFoldForSearch(t *testing.T) {
+	cases := []struct {
+		name string
+		in   string
+		want string
+	}{
+		{"ascii lower", "Hello", "hello"},
+		{"ascii upper", "HELLO", "hello"},
+		{"mixed case", "HeLLo", "hello"},
+		{"macron u", "Shūmatsu", "shumatsu"},
+		{"macron o", "Sōsō", "soso"},
+		{"circumflex", "Chûnibyô", "chunibyo"},
+		{"acute accent", "Café", "cafe"},
+		{"german umlaut", "Mädchen", "madchen"},
+		{"already ascii", "Shuumatsu", "shuumatsu"},
+		{"empty", "", ""},
+		{"combining mark only fold", "a\u0308", "a"},
+		{"greek with diacritics", "Αθήνα", "αθηνα"},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			got := FoldForSearch(tc.in)
+			if got != tc.want {
+				t.Fatalf("FoldForSearch(%q) = %q, want %q", tc.in, got, tc.want)
+			}
+		})
+	}
+}
+
+func TestFoldedContains(t *testing.T) {
+	// Note on canonicalisation: Unicode case folding never expands a
+	// letter. U+016B ū folds to U+0075 u (one character), not to
+	// "uu" — the latter is a romanisation choice, not a fold. The
+	// practical effect for the user is that a macroned title
+	// ("Shūmatsu") matches an un-macroned query ("shumatsu"), and an
+	// un-macroned title ("Shuumatsu") matches a macroned query
+	// ("shūmatsu" → "shumatsu") only when the macroned form is
+	// present in the haystack, not when the title uses two un-macroned
+	// u's. A romanisation-aliases feature would be a separate
+	// concern; for now the user gets a clear, conservative semantic.
+	cases := []struct {
+		name     string
+		haystack string
+		needle   string
+		want     bool
+	}{
+		{"empty needle matches", "Anything Goes", "", true},
+		{"ascii case insensitive", "Sword Art Online", "sword", true},
+		{"ascii case insensitive upper needle", "Sword Art Online", "SWORD", true},
+		{"ascii case insensitive upper haystack", "SWORD ART ONLINE", "sword", true},
+		{"ascii exact substring", "Sword Art Online", "art", true},
+		{"ascii no match", "Sword Art Online", "xyz", false},
+		{"macroned haystack un-macroned needle", "Shūmatsu no Valkyrie", "shumatsu", true},
+		{"un-macroned haystack macroned needle matching its own fold", "Shūmatsu no Valkyrie", "shūmatsu", true},
+		{"romanisation difference does not match", "Shuumatsu no Valkyrie", "shūmatsu", false},
+		{"both macroned same form", "Shūmatsu no Valkyrie", "Shūmatsu", true},
+		{"soso with macrons", "Sōsō no Pet na Kanojo", "soso", true},
+		{"chunibyo with circumflex", "Chûnibyô demo Koi ga Shitai!", "chunibyo", true},
+		{"cafe with accent", "Café Stéreo", "cafe", true},
+		{"cafe with decomposed e + combining acute", "Cafe\u0301", "cafe", true},
+		{"madchen with umlaut", "Mädchen im Moor", "madchen", true},
+		{"greek with diacritics", "Αθήνα", "αθηνα", true},
+		{"subtle false positive guarded by fold", "Star", "tsar", false},
+		{"alpha-num", "Sword Art Online 21", "21", true},
+		{"invalid utf-8 falls back gracefully", "\xffSword", "sword", true},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			got := FoldedContains(tc.haystack, tc.needle)
+			if got != tc.want {
+				t.Fatalf("FoldedContains(%q, %q) = %v, want %v", tc.haystack, tc.needle, got, tc.want)
+			}
+		})
+	}
+}
+
+// FoldedContains must keep every behaviour of the older ASCII-only
+// ContainsFold. This guard prevents a future regression where
+// Unicode folding accidentally drops a match that the legacy path
+// would have kept.
+func TestFoldedContains_AsciiSupersetOfContainsFold(t *testing.T) {
+	pairs := []struct {
+		h, n string
+	}{
+		{"Sword Art Online", "sword"},
+		{"Sword Art Online", "SWORD"},
+		{"SWORD ART ONLINE", "sword"},
+		{"Overlord", "lord"},
+		{"Mushoku Tensei", "TENSEI"},
+		{"Re:Zero", "re:zero"},
+		{"A", "a"},
+		{"Hello World", "world"},
+	}
+	for _, p := range pairs {
+		old := ContainsFold(p.h, p.n)
+		newer := FoldedContains(p.h, p.n)
+		if old != newer {
+			t.Fatalf("divergence on (%q, %q): ContainsFold=%v FoldedContains=%v", p.h, p.n, old, newer)
+		}
+	}
+}

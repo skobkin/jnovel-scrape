@@ -4,10 +4,55 @@ import (
 	"html"
 	"regexp"
 	"strings"
+	"unicode"
+
+	"golang.org/x/text/cases"
+	"golang.org/x/text/runes"
+	"golang.org/x/text/transform"
+	"golang.org/x/text/unicode/norm"
 )
 
 var tagPattern = regexp.MustCompile(`<[^>]+>`)
 var whitespacePattern = regexp.MustCompile(`\s+`)
+
+// searchFold is a Unicode-aware case+diacritic folder shared by every
+// search-time comparison in this package. It folds both sides to a
+// canonical form so that, for example, "Shūmatsu" matches "Shuumatsu"
+// and "Sōsō" matches "Soso".
+//
+//	searchFold  = Unicode case-fold  (cases.Fold)
+//	            + NFD decompose
+//	            + drop combining marks (Mn)
+//
+// NFD splits "ū" into "u" + U+0304 (combining macron); the runes
+// transformer then strips the Mn category, leaving the ASCII base
+// letter. The order matters: case-fold first, then decompose, so
+// that mixed-case + macroned input ("Shūmatsu") and all-ASCII input
+// ("Shuumatsu") collapse to the same bytes.
+var searchFold = transform.Chain(
+	cases.Fold(),
+	norm.NFD,
+	runes.Remove(runes.In(unicode.Mn)),
+)
+
+// FoldForSearch returns a canonical, case-folded, diacritic-stripped
+// form of s suitable for case-insensitive substring and word
+// comparisons. The result is intended only for matching; do not
+// display it to users. The input is not whitespace-normalised —
+// use NormalizeForSearch when the needle or haystack may contain
+// runs of whitespace or non-breaking spaces.
+func FoldForSearch(s string) string {
+	out, _, err := transform.String(searchFold, s)
+	if err != nil {
+		// transform.String only fails if the input contains an
+		// invalid UTF-8 byte; fall back to the original string so
+		// search still works (without folding) on bad data rather
+		// than returning an empty match.
+		return s
+	}
+
+	return out
+}
 
 // CleanTitle removes HTML tags, unescapes entities, and collapses whitespace.
 func CleanTitle(input string) string {
@@ -43,4 +88,18 @@ func ContainsFold(haystack, needle string) bool {
 	}
 
 	return strings.Contains(strings.ToLower(haystack), strings.ToLower(needle))
+}
+
+// FoldedContains reports whether needle appears in haystack under
+// Unicode case-folding and diacritic stripping. Both sides are
+// transformed by FoldForSearch so that matches are insensitive to
+// case (ASCII or otherwise) and to the presence of combining
+// marks: "Shūmatsu" matches "shuumatsu", "Sōsō" matches "soso",
+// and "Café" matches "cafe". An empty needle always matches.
+func FoldedContains(haystack, needle string) bool {
+	if needle == "" {
+		return true
+	}
+
+	return strings.Contains(FoldForSearch(haystack), FoldForSearch(needle))
 }
