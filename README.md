@@ -23,33 +23,35 @@ This produces the `jnovels-scrape` binary in the current directory.
 
 ## Usage
 
-The cutoff date (`--until`) is required and uses `YYYY-MM-DD`.
-
 ```sh
-# Simple run
 ./jnovels-scrape --until 2024-12-01 --out releases.md
-
-# More advanced
-./jnovels-scrape --until 2025-01-01 --group title --type EPUB --out result.md
 ```
 
-Common flags:
+## Configuration
 
-| Flag | Description |
-| --- | --- |
-| `--until <date>` | Required cutoff date (`YYYY-MM-DD`). Only posts on/after this date are kept. |
-| `--type, -t <list>` | Comma-separated subset of `epub,pdf,manga,unknown` (case-insensitive). |
-| `--title, --name, -n <substr>` | Case-insensitive title substring filter; repeat the flag or provide comma-separated values to match any title. |
-| `--volume, -v <num>` | Filter by exact volume (integer or decimal). Posts without a recognised volume are dropped. |
-| `--out <path>` | Output file. Default is `stdout`. |
-| `--max-pages <int>` | Safety limit when paging (default `2000`). |
-| `--concurrency <int>` | Detail fetch concurrency for HTML fallback (default `4`). |
-| `--req-interval <duration>` | Minimum interval between every HTTP request (default `600ms`). |
-| `--limit-wait <duration>` | Wait time when the server rate limits without `Retry-After` (default `60s`). |
-| `--group <none\|title>` | Group output rows before sorting (default `none`). |
-| `--group-sort <asc\|desc>` | Sort order inside title groups when `--group=title` (default `asc`). |
-| `--mode <auto\|api\|html>` | Select fetch strategy. `auto` (default) tries the API before falling back to HTML. |
-| `--version` | Print the binary version (set via ldflags at build time) and exit. |
+Settings are loaded in this order, with later sources overriding earlier ones:
+
+1. **Built-in defaults**
+2. **Environment variables** prefixed with `JN_` (suffix matches the long flag name)
+3. **CLI flags**
+
+Slice values (`--title`) accept either repeated flags (`--title a --title b`) or a comma-separated form (`--title "a,b"`, `JN_TITLE="a,b"`).
+
+| Flag | Env var | Default | Required | Description |
+| --- | --- | --- | --- | --- |
+| `--until` | `JN_UNTIL` | — | yes | Cutoff date (`YYYY-MM-DD`); only posts on/after this date are kept. |
+| `--type`, `-t` | `JN_TYPE` | — | no | Comma-separated subset of `epub,pdf,manga,unknown` (case-insensitive). |
+| `--title`, `--name`, `-n` | `JN_TITLE` | — | no | Case-insensitive title substring filter; repeat the flag or use comma-separated values. |
+| `--volume`, `-v` | `JN_VOLUME` | — | no | Exact volume (integer or decimal); posts without a parsed volume are dropped. |
+| `--out` | `JN_OUT` | stdout | no | Output file path. |
+| `--max-pages` | `JN_MAX_PAGES` | `2000` | no | Safety limit when paging. |
+| `--concurrency` | `JN_CONCURRENCY` | `4` | no | Detail fetch concurrency for HTML fallback. |
+| `--req-interval` | `JN_REQ_INTERVAL` | `600ms` | no | Minimum interval between HTTP requests (Go duration). |
+| `--limit-wait` | `JN_LIMIT_WAIT` | `60s` | no | Wait time when the server rate limits without `Retry-After` (Go duration). |
+| `--group` | `JN_GROUP` | `none` | no | `none` or `title` — cluster rows before sorting. |
+| `--group-sort` | `JN_GROUP_SORT` | `asc` | no | `asc` or `desc` — sort order inside groups. |
+| `--mode` | `JN_MODE` | `auto` | no | `auto`, `api`, or `html` — fetch strategy. |
+| `--version` | — | — | no | Print the binary version (set via ldflags at build time) and exit. |
 
 ### Example
 
@@ -71,38 +73,6 @@ Common flags:
 API mode uses `wp-json/wp/v2/posts` with `per_page=100`, `orderby=date`, and an `after` parameter derived from `--until`. Taxonomies are fetched once to improve type inference. HTML mode mirrors the `/page/{n}/` archives, extracts titles/links, and loads each post to read the authoritative publish date, categories, and tags.
 
 Warnings are emitted for partial records (e.g., blank volumes, `UNKNOWN` type, skipped posts without publish dates). These appear on stderr prefixed with `WARN`.
-
-## Configuration sources and precedence
-
-Settings are loaded in this order, with later sources overriding earlier ones:
-
-1. **Built-in defaults** for fetch mode, grouping, rate limits, paging,
-   and concurrency.
-2. **Environment variables** prefixed with `JNOVEL_`. Suffixes match
-   the long flag name (e.g. `JNOVEL_REQ_INTERVAL`, `JNOVEL_MAX_PAGES`).
-3. **CLI flags** (e.g. `--req-interval`, `--max-pages`).
-
-Slice-valued settings (currently just `--title`) use comma-separated
-form for both CLI and env: `--title "dragon,spice"` and
-`JNOVEL_TITLE="dragon,spice"` are equivalent. Repeated CLI flags
-(`--title "dragon" --title "spice"`) are also supported.
-
-### Environment variable reference
-
-| Env var | Equivalent flag | Notes |
-| --- | --- | --- |
-| `JNOVEL_UNTIL` | `--until` | Required, `YYYY-MM-DD`. |
-| `JNOVEL_TYPE` | `--type` | Comma-separated. |
-| `JNOVEL_TITLE` | `--title` | Comma-separated. |
-| `JNOVEL_VOLUME` | `--volume` | |
-| `JNOVEL_MODE` | `--mode` | `auto`, `api`, `html`. |
-| `JNOVEL_GROUP` | `--group` | `none`, `title`. |
-| `JNOVEL_GROUP_SORT` | `--group-sort` | `asc`, `desc`. |
-| `JNOVEL_REQ_INTERVAL` | `--req-interval` | Go duration string. |
-| `JNOVEL_LIMIT_WAIT` | `--limit-wait` | Go duration string. |
-| `JNOVEL_MAX_PAGES` | `--max-pages` | Positive integer. |
-| `JNOVEL_CONCURRENCY` | `--concurrency` | Positive integer. |
-| `JNOVEL_OUT` | `--out` | Output path (default stdout). |
 
 ## Rate Limiting
 
