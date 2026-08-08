@@ -39,19 +39,19 @@ Slice values (`--title`) accept either repeated flags (`--title a --title b`) or
 
 | Flag | Env var | Default | Required | Description |
 | --- | --- | --- | --- | --- |
-| `--until` | `JN_UNTIL` | — | yes | Cutoff date (`YYYY-MM-DD`); only posts on/after this date are kept. |
-| `--type`, `-t` | `JN_TYPE` | — | no | Comma-separated subset of `epub,pdf,manga,unknown` (case-insensitive). |
-| `--title`, `--name`, `-n` | `JN_TITLE` | — | no | Case-insensitive title substring filter; repeat the flag or use comma-separated values. |
-| `--volume`, `-v` | `JN_VOLUME` | — | no | Exact volume (integer or decimal); posts without a parsed volume are dropped. |
-| `--out` | `JN_OUT` | stdout | no | Output file path. |
-| `--max-pages` | `JN_MAX_PAGES` | `2000` | no | Safety limit when paging. |
-| `--concurrency` | `JN_CONCURRENCY` | `4` | no | Detail fetch concurrency for HTML fallback. |
-| `--req-interval` | `JN_REQ_INTERVAL` | `600ms` | no | Minimum interval between HTTP requests (Go duration). |
-| `--limit-wait` | `JN_LIMIT_WAIT` | `60s` | no | Wait time when the server rate limits without `Retry-After` (Go duration). |
-| `--group` | `JN_GROUP` | `none` | no | `none` or `title` — cluster rows before sorting. |
-| `--group-sort` | `JN_GROUP_SORT` | `asc` | no | `asc` or `desc` — sort order inside groups. |
-| `--mode` | `JN_MODE` | `auto` | no | `auto`, `api`, or `html` — fetch strategy. |
-| `--version` | — | — | no | Print the binary version (set via ldflags at build time) and exit. |
+| `--until` | `JN_UNTIL` | — | ✅ | Cutoff date (`YYYY-MM-DD`); only posts on/after this date are kept. |
+| `--type`, `-t` | `JN_TYPE` | — | ❌ | Comma-separated subset of `epub,pdf,manga,unknown` (case-insensitive). |
+| `--title`, `--name`, `-n` | `JN_TITLE` | — | ❌ | Case-insensitive title substring filter; repeat the flag or use comma-separated values. |
+| `--volume`, `-v` | `JN_VOLUME` | — | ❌ | Exact volume (integer or decimal); posts without a parsed volume are dropped. |
+| `--out` | `JN_OUT` | stdout | ❌ | Output file path. |
+| `--max-pages` | `JN_MAX_PAGES` | `2000` | ❌ | Safety limit when paging. |
+| `--concurrency` | `JN_CONCURRENCY` | `4` | ❌ | Detail fetch concurrency for HTML fallback. |
+| `--req-interval` | `JN_REQ_INTERVAL` | `600ms` | ❌ | Minimum interval between HTTP requests (Go duration). |
+| `--limit-wait` | `JN_LIMIT_WAIT` | `60s` | ❌ | Wait time when the server rate limits without `Retry-After` (Go duration). |
+| `--group` | `JN_GROUP` | `none` | ❌ | `none` or `title` — cluster rows before sorting. |
+| `--group-sort` | `JN_GROUP_SORT` | `asc` | ❌ | `asc` or `desc` — sort order inside groups. |
+| `--mode` | `JN_MODE` | `auto` | ❌ | `auto`, `api`, or `html` — fetch strategy. |
+| `--version` | — | — | ❌ | Print the binary version (set via ldflags at build time) and exit. |
 
 ### Example
 
