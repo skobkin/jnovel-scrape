@@ -1,0 +1,87 @@
+when:
+  - event: push
+    branch: master
+  - event: pull_request
+  - event: tag
+
+clone:
+  git:
+    image: woodpeckerci/plugin-git
+    settings:
+      depth: 0
+
+steps:
+  fmt:
+    image: golang:1.26-alpine
+    commands:
+      - |
+        fmt_out=$(gofmt -l ./cmd ./internal 2>/dev/null)
+        if [ -n "$fmt_out" ]; then
+          echo "The following files need gofmt:"
+          echo "$fmt_out"
+          exit 1
+        fi
+
+  lint:
+    image: golangci/golangci-lint:v2.12.2-alpine
+    environment:
+      XDG_CACHE_HOME: /tmp/.cache
+    commands:
+      - golangci-lint run --config .golangci.yml
+
+  vet:
+    image: golang:1.26-alpine
+    environment:
+      GOCACHE: /tmp/.gocache
+    commands:
+      - go vet ./...
+
+  test:
+    image: golang:1.26-alpine
+    environment:
+      GOCACHE: /tmp/.gocache
+    commands:
+      - go test ./...
+
+  test-race:
+    image: golang:1.26-alpine
+    environment:
+      GOCACHE: /tmp/.gocache-race
+    commands:
+      - go test -race ./...
+
+  build:
+    image: golang:1.26-alpine
+    depends_on:
+      - fmt
+      - lint
+      - vet
+      - test
+      - test-race
+    environment:
+      GOCACHE: /tmp/.gocache
+    commands:
+      - mkdir -p dist
+      - CGO_ENABLED=0 go build -trimpath -ldflags "-s -w -buildid= -X git.skobk.in/skobkin/jnovel-scrape/internal/app.Version=${CI_COMMIT_TAG:-dev}" -o dist/jnovels-scrape ./cmd/jnovels-scrape
+    when:
+      - event: pull_request
+
+  release-forgejo:
+    image: goreleaser/goreleaser:v2.17.1
+    depends_on:
+      - fmt
+      - lint
+      - vet
+      - test
+      - test-race
+    environment:
+      FORGE_TOKEN:
+        from_secret: FORGE_TOKEN
+    commands:
+      - test -n "$CI_FORGE_URL" || (echo "CI_FORGE_URL is empty. Cannot derive Forge URLs for GoReleaser." && exit 1)
+      - export GITEA_TOKEN="${GITEA_TOKEN:-$FORGE_TOKEN}"
+      - test -n "$FORGE_API_URL" || export FORGE_API_URL="$CI_FORGE_URL/api/v1"
+      - test -n "$FORGE_DOWNLOAD_URL" || export FORGE_DOWNLOAD_URL="$CI_FORGE_URL"
+      - goreleaser release --clean
+    when:
+      - event: tag

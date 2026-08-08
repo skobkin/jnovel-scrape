@@ -49,6 +49,7 @@ Common flags:
 | `--group <none\|title>` | Group output rows before sorting (default `none`). |
 | `--group-sort <asc\|desc>` | Sort order inside title groups when `--group=title` (default `asc`). |
 | `--mode <auto\|api\|html>` | Select fetch strategy. `auto` (default) tries the API before falling back to HTML. |
+| `--version` | Print the binary version (set via ldflags at build time) and exit. |
 
 ### Example
 
@@ -104,4 +105,4 @@ go test ./...
 
 The repository contains unit tests for filters, type/volume parsing, and time parsing.
 
-CI (GitHub Actions) runs formatting checks (`go fmt`), `go vet`, and the unit test suite on every push.
+CI (Woodpecker) runs formatting checks (`gofmt`), `golangci-lint`, `go vet`, race-enabled tests, and a build on every pull request. Tag pushes trigger a GoReleaser build that publishes archives as a Forgejo release.

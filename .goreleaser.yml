@@ -1,0 +1,62 @@
+version: 2
+
+project_name: jnovels-scrape
+
+gitea_urls:
+  api: "{{ .Env.FORGE_API_URL }}"
+  download: "{{ .Env.FORGE_DOWNLOAD_URL }}"
+
+builds:
+  - id: jnovels-scrape
+    main: ./cmd/jnovels-scrape
+    binary: jnovels-scrape
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - windows
+      - darwin
+    goarch:
+      - amd64
+      - arm64
+    flags:
+      - -trimpath
+    ldflags:
+      - -s -w -buildid=
+      - -X git.skobk.in/skobkin/jnovel-scrape/internal/app.Version={{ .Version }}
+
+archives:
+  - formats:
+      - tar.gz
+    name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+    format_overrides:
+      - goos: windows
+        formats:
+          - zip
+
+checksum:
+  name_template: checksums.txt
+
+changelog:
+  sort: asc
+  groups:
+    - title: Features
+      regexp: '^.*?feat(\([[:word:]-]+\))?!?:.+$'
+      order: 0
+    - title: Fixes
+      regexp: '^.*?fix(\([[:word:]-]+\))?!?:.+$'
+      order: 1
+    - title: Reverts
+      regexp: '^.*?[Rr]evert\b.*$'
+      order: 999
+    - title: Other Changes
+      order: 1000
+  filters:
+    exclude:
+      - '^build(\([^)]*\))?!?:'
+      - '^ci(\([^)]*\))?!?:'
+      - '^chore(\([^)]*\))?!?:'
+      - '^docs(\([^)]*\))?!?:'
+      - '^refactor(\([^)]*\))?!?:'
+      - '^style(\([^)]*\))?!?:'
+      - '^test(\([^)]*\))?!?:'
