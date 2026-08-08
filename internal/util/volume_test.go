@@ -167,6 +167,7 @@ func gotVolumeVal(v *float64) interface{} {
 	if v == nil {
 		return nil
 	}
+
 	return *v
 }
 

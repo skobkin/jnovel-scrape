@@ -46,8 +46,11 @@ const (
 
 type stringList []string
 
-func (s *stringList) String() string         { return strings.Join(*s, ",") }
-func (s *stringList) Set(value string) error { *s = append(*s, value); return nil }
+func (s *stringList) String() string { return strings.Join(*s, ",") }
+func (s *stringList) Set(value string) error {
+	*s = append(*s, value)
+	return nil
+}
 
 // Config represents the fully-parsed CLI configuration.
 type Config struct {
@@ -201,6 +204,7 @@ func ParseArgs(args []string, output io.Writer) (Config, error) {
 		return cfg, err
 	}
 	cfg.GroupSort = groupSort
+
 	return cfg, nil
 }
 
@@ -228,6 +232,7 @@ func parseTypeList(raw string) ([]model.PostType, error) {
 		seen[postType] = struct{}{}
 		result = append(result, postType)
 	}
+
 	return result, nil
 }
 

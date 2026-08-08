@@ -18,6 +18,7 @@ func CleanTitle(input string) string {
 	unescaped := html.UnescapeString(stripped)
 	unescaped = strings.ReplaceAll(unescaped, "\u00a0", " ")
 	collapsed := whitespacePattern.ReplaceAllString(unescaped, " ")
+
 	return strings.TrimSpace(collapsed)
 }
 
@@ -26,6 +27,7 @@ func StripTags(input string) string {
 	if input == "" {
 		return ""
 	}
+
 	return tagPattern.ReplaceAllString(input, "")
 }
 
@@ -39,5 +41,6 @@ func ContainsFold(haystack, needle string) bool {
 	if needle == "" {
 		return true
 	}
+
 	return strings.Contains(strings.ToLower(haystack), strings.ToLower(needle))
 }

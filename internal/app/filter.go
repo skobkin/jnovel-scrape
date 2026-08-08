@@ -25,6 +25,7 @@ func filterPosts(posts model.Posts, cfg Config) (model.Posts, FilterStats) {
 		if len(cfg.TypeFilters) > 0 {
 			if _, ok := cfg.TypeFilters[post.Type]; !ok {
 				stats.TypeDropped++
+
 				continue
 			}
 		}
@@ -34,11 +35,13 @@ func filterPosts(posts model.Posts, cfg Config) (model.Posts, FilterStats) {
 			for _, title := range cfg.TitleFilters {
 				if util.ContainsFold(post.Title, title) {
 					matched = true
+
 					break
 				}
 			}
 			if !matched {
 				stats.TitleDropped++
+
 				continue
 			}
 		}
@@ -46,6 +49,7 @@ func filterPosts(posts model.Posts, cfg Config) (model.Posts, FilterStats) {
 		if cfg.VolumeFilter != nil {
 			if !post.VolumeEqual(*cfg.VolumeFilter) {
 				stats.VolumeDropped++
+
 				continue
 			}
 		}
@@ -54,5 +58,6 @@ func filterPosts(posts model.Posts, cfg Config) (model.Posts, FilterStats) {
 	}
 
 	filtered.Sort()
+
 	return filtered, stats
 }

@@ -15,6 +15,7 @@ func TestClientDoRetriesOnServerError(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if atomic.AddInt32(&attempts, 1) == 1 {
 			http.Error(w, "temporary", http.StatusBadGateway)
+
 			return
 		}
 		io.WriteString(w, "ok")
@@ -49,6 +50,7 @@ func TestClientHandlesTooManyRequests(t *testing.T) {
 		if atomic.AddInt32(&attempts, 1) == 1 {
 			w.Header().Set("Retry-After", "0")
 			http.Error(w, "slow down", http.StatusTooManyRequests)
+
 			return
 		}
 		io.WriteString(w, "ok")

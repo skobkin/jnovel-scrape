@@ -37,5 +37,6 @@ func toLowerSlice(items []string) []string {
 	for _, item := range items {
 		out = append(out, strings.ToLower(item))
 	}
+
 	return out
 }

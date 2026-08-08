@@ -23,6 +23,7 @@ var KnownTypes = []PostType{TypeEPUB, TypePDF, TypeManga}
 func AllTypes() []PostType {
 	out := append([]PostType{}, KnownTypes...)
 	out = append(out, TypeUnknown)
+
 	return out
 }
 
@@ -65,6 +66,7 @@ func (p Post) VolumeEqual(value float64) bool {
 	if p.Volume == nil {
 		return false
 	}
+
 	return *p.Volume == value
 }
 
@@ -82,6 +84,7 @@ func (ps Posts) Sort() {
 		if ps[i].Date.Equal(ps[j].Date) {
 			return strings.ToLower(ps[i].Title) < strings.ToLower(ps[j].Title)
 		}
+
 		return ps[i].Date.After(ps[j].Date)
 	})
 }

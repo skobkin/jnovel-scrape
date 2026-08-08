@@ -76,6 +76,7 @@ func NewClient(reqInterval, limitWait time.Duration, opts ...ClientOption) *Clie
 	if c.limiter == nil {
 		c.limiter = NewRateLimiter(reqInterval)
 	}
+
 	return c
 }
 
@@ -99,6 +100,7 @@ func (c *Client) Do(ctx context.Context, req *http.Request) (*http.Response, err
 			if err := c.sleepWithBackoff(ctx, attempt); err != nil {
 				return nil, err
 			}
+
 			continue
 		}
 
@@ -112,6 +114,7 @@ func (c *Client) Do(ctx context.Context, req *http.Request) (*http.Response, err
 			if err := c.sleep(ctx, wait); err != nil {
 				return nil, err
 			}
+
 			continue
 		}
 
@@ -124,6 +127,7 @@ func (c *Client) Do(ctx context.Context, req *http.Request) (*http.Response, err
 			if err := c.sleepWithBackoff(ctx, attempt); err != nil {
 				return nil, err
 			}
+
 			continue
 		}
 
@@ -132,6 +136,7 @@ func (c *Client) Do(ctx context.Context, req *http.Request) (*http.Response, err
 	if lastErr == nil {
 		lastErr = fmt.Errorf("request failed after %d retries", c.maxRetries)
 	}
+
 	return nil, lastErr
 }
 
@@ -150,6 +155,7 @@ func (c *Client) sleepWithBackoff(ctx context.Context, attempt int) error {
 	if backoff > c.limitWait {
 		backoff = c.limitWait
 	}
+
 	return c.sleep(ctx, backoff)
 }
 
@@ -179,6 +185,7 @@ func (c *Client) applyJitter(d time.Duration) time.Duration {
 	if scale < 0.1 {
 		scale = 0.1
 	}
+
 	return time.Duration(float64(d) * scale)
 }
 
@@ -188,6 +195,7 @@ func (c *Client) retryAfterDuration(resp *http.Response) time.Duration {
 		if c.limitWait > c.reqInterval {
 			return c.limitWait
 		}
+
 		return c.reqInterval
 	}
 	if seconds, err := strconv.Atoi(header); err == nil {
@@ -195,6 +203,7 @@ func (c *Client) retryAfterDuration(resp *http.Response) time.Duration {
 		if wait < c.reqInterval {
 			wait = c.reqInterval
 		}
+
 		return wait
 	}
 	if t, err := http.ParseTime(header); err == nil {
@@ -202,6 +211,7 @@ func (c *Client) retryAfterDuration(resp *http.Response) time.Duration {
 		if wait < c.reqInterval {
 			wait = c.reqInterval
 		}
+
 		return wait
 	}
 	// Fallback when header is malformed.
@@ -211,5 +221,6 @@ func (c *Client) retryAfterDuration(resp *http.Response) time.Duration {
 func cloneRequest(ctx context.Context, req *http.Request) *http.Request {
 	clone := req.Clone(ctx)
 	clone.Header = req.Header.Clone()
+
 	return clone
 }

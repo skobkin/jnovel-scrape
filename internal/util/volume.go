@@ -61,6 +61,7 @@ func ParseVolume(text string) (*float64, bool) {
 	if err != nil || math.IsNaN(value) || math.IsInf(value, 0) {
 		return nil, false
 	}
+
 	return &value, true
 }
 
@@ -80,6 +81,7 @@ func FormatVolume(v *float64) string {
 	s := strconv.FormatFloat(val, 'f', 2, 64)
 	s = strings.TrimRight(s, "0")
 	s = strings.TrimRight(s, ".")
+
 	return s
 }
 
@@ -186,6 +188,7 @@ func removeTrailingTypeTokens(s string) string {
 		}
 		trimmed = strings.TrimSpace(trimmed[:loc[0]])
 	}
+
 	return trimmed
 }
 
@@ -197,8 +200,10 @@ func trimTrailingDelimiters(s string) string {
 		case '(', ')', '[', ']', '{', '}':
 			return true
 		}
+
 		return unicode.IsSpace(r)
 	})
+
 	return strings.TrimSpace(trimmed)
 }
 
@@ -217,6 +222,7 @@ func extractVolumeExtra(after string) (string, int) {
 	descriptor := after[loc[4]:loc[5]]
 	consumed := loc[1]
 	descriptor = normalizeVolumeExtra(descriptor)
+
 	return descriptor, consumed
 }
 
@@ -236,6 +242,7 @@ func normalizeVolumeExtra(extra string) string {
 			}
 		}
 	}
+
 	return strings.Join(words, " ")
 }
 
@@ -251,6 +258,7 @@ func isRomanNumeral(s string) bool {
 			return false
 		}
 	}
+
 	return true
 }
 
@@ -262,6 +270,7 @@ func detachTrailingExtra(s string) (string, string, bool) {
 	}
 	extra := trimmed[loc[2]:loc[3]] + " " + trimmed[loc[4]:loc[5]]
 	prefix := strings.TrimSpace(trimmed[:loc[0]])
+
 	return prefix, normalizeVolumeExtra(extra), true
 }
 
@@ -292,6 +301,7 @@ func extractStandaloneVolume(s string) (string, *float64, bool) {
 	}
 
 	vol := value
+
 	return strings.TrimSpace(prefix), &vol, true
 }
 
@@ -314,6 +324,7 @@ func splitLastAlphaNum(s string) (string, string) {
 	}
 	token := string(runes[start:end])
 	prefix := strings.TrimSpace(string(runes[:start]))
+
 	return prefix, token
 }
 
@@ -326,6 +337,7 @@ func isSkipVolumeWord(word string) bool {
 		return false
 	}
 	_, ok := skipVolumePreceders[word]
+
 	return ok
 }
 
@@ -356,6 +368,7 @@ func romanToInt(s string) (int, bool) {
 		}
 		prev = val
 	}
+
 	return total, true
 }
 
@@ -409,6 +422,7 @@ func lastNumericToken(s string) string {
 	if _, ok := romanToInt(token); ok {
 		return token
 	}
+
 	return ""
 }
 
@@ -490,6 +504,7 @@ func ExtractVolumeFromLink(link string) (*float64, string, bool) {
 	if vol == nil && extra == "" {
 		return nil, "", false
 	}
+
 	return vol, extra, true
 }
 
@@ -516,5 +531,6 @@ func extractPathFromURL(link string) string {
 	if pos == -1 {
 		return ""
 	}
+
 	return link[idx+pos:]
 }

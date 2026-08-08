@@ -19,8 +19,8 @@ func TestFetchHTMLSuccess(t *testing.T) {
 	var detailRequests int32
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		switch {
-		case r.URL.Path == "/" || r.URL.Path == "":
+		switch r.URL.Path {
+		case "/", "":
 			atomic.AddInt32(&archiveRequests, 1)
 			fmt.Fprint(w, `
 				<html><body>
@@ -32,10 +32,10 @@ func TestFetchHTMLSuccess(t *testing.T) {
 					</article>
 				</body></html>
 			`)
-		case r.URL.Path == "/page/2/":
+		case "/page/2/":
 			atomic.AddInt32(&archiveRequests, 1)
 			fmt.Fprint(w, "<html><body></body></html>")
-		case r.URL.Path == "/hero-volume-2-epub/":
+		case "/hero-volume-2-epub/":
 			atomic.AddInt32(&detailRequests, 1)
 			fmt.Fprintf(w, `
 				<html>
@@ -46,7 +46,7 @@ func TestFetchHTMLSuccess(t *testing.T) {
 					</body>
 				</html>
 			`)
-		case r.URL.Path == "/mystery-epub-volume-3/":
+		case "/mystery-epub-volume-3/":
 			atomic.AddInt32(&detailRequests, 1)
 			fmt.Fprintf(w, `
 				<html>

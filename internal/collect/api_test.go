@@ -54,6 +54,7 @@ func TestFetchAPISuccess(t *testing.T) {
 			page := r.URL.Query().Get("page")
 			if page != "1" {
 				json.NewEncoder(w).Encode([]apiPost{})
+
 				return
 			}
 

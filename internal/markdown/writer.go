@@ -31,5 +31,6 @@ func WriteTable(w io.Writer, cutoff time.Time, posts model.Posts) error {
 			return err
 		}
 	}
+
 	return nil
 }

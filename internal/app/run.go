@@ -51,6 +51,7 @@ func Run(ctx context.Context, cfg Config, logger *Logger) error {
 		posts, warnings, err = collect.FetchAPI(ctx, cfg.Cutoff, options)
 		if err != nil {
 			logger.Errorf("API mode failed: %v", err)
+
 			return err
 		}
 		logger.Infof("API mode retrieved %d posts before filtering", len(posts))
@@ -58,6 +59,7 @@ func Run(ctx context.Context, cfg Config, logger *Logger) error {
 		posts, warnings, err = collect.FetchHTML(ctx, cfg.Cutoff, options)
 		if err != nil {
 			logger.Errorf("HTML mode failed: %v", err)
+
 			return err
 		}
 		logger.Infof("HTML mode retrieved %d posts before filtering", len(posts))
@@ -68,6 +70,7 @@ func Run(ctx context.Context, cfg Config, logger *Logger) error {
 			posts, warnings, err = collect.FetchHTML(ctx, cfg.Cutoff, options)
 			if err != nil {
 				logger.Errorf("HTML fallback failed: %v", err)
+
 				return err
 			}
 			logger.Infof("HTML fallback succeeded with %d posts before filtering", len(posts))
@@ -121,6 +124,7 @@ func writeOutput(cfg Config, posts model.Posts, logger *Logger) error {
 	} else {
 		logger.Infof("Wrote Markdown to %s (%d rows)", cfg.OutputPath, len(posts))
 	}
+
 	return nil
 }
 
@@ -131,11 +135,13 @@ func dedupePosts(posts model.Posts) (model.Posts, int) {
 	for _, post := range posts {
 		if _, ok := seen[post.Link]; ok {
 			removed++
+
 			continue
 		}
 		seen[post.Link] = struct{}{}
 		result = append(result, post)
 	}
+
 	return result, removed
 }
 
@@ -171,6 +177,7 @@ func applyGrouping(posts model.Posts, mode GroupMode, sortOrder GroupSort) model
 		if ii == jj {
 			return ordered[i].title < ordered[j].title
 		}
+
 		return ii < jj
 	})
 	result := make(model.Posts, 0, len(posts))
@@ -178,6 +185,7 @@ func applyGrouping(posts model.Posts, mode GroupMode, sortOrder GroupSort) model
 		sortGroupPosts(g.list, sortOrder)
 		result = append(result, g.list...)
 	}
+
 	return result
 }
 
@@ -195,6 +203,7 @@ func compareWithinGroup(a, b model.Post, order GroupSort) bool {
 			if order == GroupSortDesc {
 				return av > bv
 			}
+
 			return av < bv
 		} else {
 			if res, ok := compareVolumeExtra(a.VolumeExtra, b.VolumeExtra, order); ok {
@@ -215,6 +224,7 @@ func compareWithinGroup(a, b model.Post, order GroupSort) bool {
 	if a.Type != b.Type {
 		return string(a.Type) < string(b.Type)
 	}
+
 	return a.Link < b.Link
 }
 
@@ -222,6 +232,7 @@ func volumeSortValue(post model.Post) (float64, bool) {
 	if post.Volume == nil {
 		return math.NaN(), false
 	}
+
 	return *post.Volume, true
 }
 
@@ -244,6 +255,7 @@ func compareVolumeExtra(extraA, extraB string, order GroupSort) (bool, bool) {
 		if order == GroupSortDesc {
 			return aVal > bVal, true
 		}
+
 		return aVal < bVal, true
 	}
 	// fall back to lexical comparison
@@ -253,6 +265,7 @@ func compareVolumeExtra(extraA, extraB string, order GroupSort) (bool, bool) {
 	if order == GroupSortDesc {
 		return extraA > extraB, true
 	}
+
 	return extraA < extraB, true
 }
 
@@ -268,6 +281,7 @@ func parseVolumeExtraNumber(extra string) (float64, bool) {
 	if romanValue, ok := romanToInt(value); ok {
 		return float64(romanValue), true
 	}
+
 	return 0, false
 }
 
@@ -298,5 +312,6 @@ func romanToInt(s string) (int, bool) {
 		}
 		prev = val
 	}
+
 	return total, true
 }

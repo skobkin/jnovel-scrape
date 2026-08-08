@@ -76,6 +76,7 @@ func FetchAPI(ctx context.Context, cutoff time.Time, opt Options) (model.Posts, 
 		if resp.StatusCode >= 400 {
 			payload, _ := io.ReadAll(resp.Body)
 			resp.Body.Close()
+
 			return nil, nil, fmt.Errorf("posts request failed: %s (%s)", resp.Status, string(payload))
 		}
 
@@ -93,6 +94,7 @@ func FetchAPI(ctx context.Context, cutoff time.Time, opt Options) (model.Posts, 
 		var apiPosts []apiPost
 		if err := decodeJSON(resp.Body, &apiPosts); err != nil {
 			resp.Body.Close()
+
 			return nil, nil, err
 		}
 		resp.Body.Close()
@@ -158,6 +160,7 @@ func FetchAPI(ctx context.Context, cutoff time.Time, opt Options) (model.Posts, 
 	}
 
 	allPosts.Sort()
+
 	return allPosts, warnings, nil
 }
 
@@ -196,12 +199,14 @@ func fetchSelectedTaxonomy(ctx context.Context, opt Options, taxonomy string, id
 		if resp.StatusCode >= 400 {
 			payload, _ := io.ReadAll(resp.Body)
 			resp.Body.Close()
+
 			return nil, fmt.Errorf("%s request failed: %s (%s)", taxonomy, resp.Status, string(payload))
 		}
 
 		var items []taxonomyItem
 		if err := decodeJSON(resp.Body, &items); err != nil {
 			resp.Body.Close()
+
 			return nil, err
 		}
 		resp.Body.Close()
@@ -210,6 +215,7 @@ func fetchSelectedTaxonomy(ctx context.Context, opt Options, taxonomy string, id
 			result[item.ID] = item.Name
 		}
 	}
+
 	return result, nil
 }
 
@@ -226,6 +232,7 @@ func decodeJSON(body io.ReadCloser, target interface{}) error {
 	if err := decoder.Decode(target); err != nil && err != io.EOF {
 		return err
 	}
+
 	return nil
 }
 
@@ -298,6 +305,7 @@ func transformAPIPost(src apiPost, cutoff time.Time, categoryNames []string, tag
 	if post.Type == model.TypeUnknown {
 		return &post, fmt.Sprintf("%s type unresolved → UNKNOWN", post.Link), false
 	}
+
 	return &post, "", false
 }
 
@@ -311,6 +319,7 @@ func lookupNames(table map[int]string, ids []int) []string {
 			out = append(out, name)
 		}
 	}
+
 	return out
 }
 
@@ -331,6 +340,7 @@ func parseWPTime(primary, fallback string) (time.Time, error) {
 			}
 		}
 	}
+
 	return time.Time{}, fmt.Errorf("unrecognized time format: primary=%q fallback=%q", primary, fallback)
 }
 
@@ -343,6 +353,7 @@ func sortedKeys(set map[int]struct{}) []int {
 		out = append(out, id)
 	}
 	sort.Ints(out)
+
 	return out
 }
 
@@ -360,6 +371,7 @@ func chunkInts(ids []int, size int) [][]int {
 		copy(chunk, ids[start:end])
 		batches = append(batches, chunk)
 	}
+
 	return batches
 }
 
@@ -371,6 +383,7 @@ func joinInts(ids []int) string {
 	for i, id := range ids {
 		parts[i] = strconv.Itoa(id)
 	}
+
 	return strings.Join(parts, ",")
 }
 
@@ -436,12 +449,14 @@ func (r *taxonomyResolver) Resolve(ctx context.Context, ids []int) ([]string, er
 			result = append(result, name)
 		}
 	}
+
 	return result, nil
 }
 
 func (r *taxonomyResolver) ResolvedCount() int {
 	r.mu.Lock()
 	defer r.mu.Unlock()
+
 	return len(r.fetched)
 }
 
@@ -480,12 +495,14 @@ func fetchTaxonomyChunk(ctx context.Context, opt Options, taxonomy string, ids [
 	if resp.StatusCode >= 400 {
 		payload, _ := io.ReadAll(resp.Body)
 		resp.Body.Close()
+
 		return nil, fmt.Errorf("%s request failed: %s (%s)", taxonomy, resp.Status, string(payload))
 	}
 
 	var items []taxonomyItem
 	if err := decodeJSON(resp.Body, &items); err != nil {
 		resp.Body.Close()
+
 		return nil, err
 	}
 	resp.Body.Close()
@@ -494,6 +511,7 @@ func fetchTaxonomyChunk(ctx context.Context, opt Options, taxonomy string, ids [
 	for _, item := range items {
 		result[item.ID] = item.Name
 	}
+
 	return result, nil
 }
 
@@ -507,5 +525,6 @@ func uniqueInts(ids []int) []int {
 		seen[id] = struct{}{}
 		out = append(out, id)
 	}
+
 	return out
 }

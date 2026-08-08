@@ -68,6 +68,7 @@ func FetchHTML(ctx context.Context, cutoff time.Time, opt Options) (model.Posts,
 		if resp.StatusCode >= 400 {
 			payload, _ := io.ReadAll(resp.Body)
 			resp.Body.Close()
+
 			return nil, nil, fmt.Errorf("archive request failed: %s (%s)", resp.Status, string(payload))
 		}
 
@@ -90,6 +91,7 @@ func FetchHTML(ctx context.Context, cutoff time.Time, opt Options) (model.Posts,
 		for _, post := range pagePosts {
 			if post.Date.Before(cutoff) {
 				warnings = append(warnings, fmt.Sprintf("%s skipped (date %s before cutoff)", post.Link, post.FormatDate()))
+
 				continue
 			}
 			allPosts = append(allPosts, post)
@@ -102,6 +104,7 @@ func FetchHTML(ctx context.Context, cutoff time.Time, opt Options) (model.Posts,
 	}
 
 	allPosts.Sort()
+
 	return allPosts, warnings, nil
 }
 
@@ -115,6 +118,7 @@ func archiveURL(base string, page int) string {
 	if page <= 1 {
 		return trimmed
 	}
+
 	return fmt.Sprintf("%s/page/%d/", trimmed, page)
 }
 
@@ -144,6 +148,7 @@ func extractArchiveCandidates(pageHTML, base string) []archiveCandidate {
 			Link:  resolveLink(base, href),
 		})
 	}
+
 	return candidates
 }
 
@@ -183,6 +188,7 @@ func enrichCandidates(ctx context.Context, opt Options, candidates []archiveCand
 			case jobCh <- candidate:
 			case <-ctx.Done():
 				close(jobCh)
+
 				return
 			}
 		}
@@ -205,6 +211,7 @@ func enrichCandidates(ctx context.Context, opt Options, candidates []archiveCand
 			collected = append(collected, *result.post)
 		}
 	}
+
 	return collected, warnings
 }
 
@@ -222,6 +229,7 @@ func fetchDetail(ctx context.Context, client *httpx.Client, userAgent string, ca
 	if resp.StatusCode >= 400 {
 		payload, _ := io.ReadAll(resp.Body)
 		resp.Body.Close()
+
 		return detailResult{warnings: []string{fmt.Sprintf("%s unexpected status %s (%s) → skipped", candidate.Link, resp.Status, string(payload))}}
 	}
 
@@ -295,6 +303,7 @@ func extractPublishedDate(content string) (time.Time, error) {
 			return parsed, nil
 		}
 	}
+
 	return time.Time{}, fmt.Errorf("no publish date found")
 }
 
@@ -320,6 +329,7 @@ func extractTaxonomy(content string) (categories, tags []string) {
 	}
 	categories = setToSortedSlice(catSet)
 	tags = setToSortedSlice(tagSet)
+
 	return
 }
 
@@ -338,6 +348,7 @@ func resolveLink(baseURL, href string) string {
 	if err != nil {
 		return href
 	}
+
 	return base.ResolveReference(parsed).String()
 }
 
@@ -350,5 +361,6 @@ func setToSortedSlice(items map[string]struct{}) []string {
 		out = append(out, k)
 	}
 	sort.Strings(out)
+
 	return out
 }
