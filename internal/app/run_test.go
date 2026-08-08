@@ -1,3 +1,7 @@
+// Test code reads a t.TempDir()-controlled path; gosec G304 is a
+// false positive here.
+//
+//nolint:gosec
 package app
 
 import (

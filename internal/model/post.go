@@ -10,9 +10,13 @@ import (
 type PostType string
 
 const (
-	TypeEPUB    PostType = "EPUB"
-	TypePDF     PostType = "PDF"
-	TypeManga   PostType = "MANGA"
+	// TypeEPUB marks an EPUB release.
+	TypeEPUB PostType = "EPUB"
+	// TypePDF marks a PDF release.
+	TypePDF PostType = "PDF"
+	// TypeManga marks a manga release.
+	TypeManga PostType = "MANGA"
+	// TypeUnknown marks a release whose type could not be inferred.
 	TypeUnknown PostType = "UNKNOWN"
 )
 

@@ -75,7 +75,7 @@ func FetchAPI(ctx context.Context, cutoff time.Time, opt Options) (model.Posts, 
 		}
 		if resp.StatusCode >= 400 {
 			payload, _ := io.ReadAll(resp.Body)
-			resp.Body.Close()
+			_ = resp.Body.Close()
 
 			return nil, nil, fmt.Errorf("posts request failed: %s (%s)", resp.Status, string(payload))
 		}
@@ -93,11 +93,11 @@ func FetchAPI(ctx context.Context, cutoff time.Time, opt Options) (model.Posts, 
 
 		var apiPosts []apiPost
 		if err := decodeJSON(resp.Body, &apiPosts); err != nil {
-			resp.Body.Close()
+			_ = resp.Body.Close()
 
 			return nil, nil, err
 		}
-		resp.Body.Close()
+		_ = resp.Body.Close()
 
 		logger.Infof("API page=%d returned %d posts", page, len(apiPosts))
 
@@ -198,18 +198,18 @@ func fetchSelectedTaxonomy(ctx context.Context, opt Options, taxonomy string, id
 		}
 		if resp.StatusCode >= 400 {
 			payload, _ := io.ReadAll(resp.Body)
-			resp.Body.Close()
+			_ = resp.Body.Close()
 
 			return nil, fmt.Errorf("%s request failed: %s (%s)", taxonomy, resp.Status, string(payload))
 		}
 
 		var items []taxonomyItem
 		if err := decodeJSON(resp.Body, &items); err != nil {
-			resp.Body.Close()
+			_ = resp.Body.Close()
 
 			return nil, err
 		}
-		resp.Body.Close()
+		_ = resp.Body.Close()
 
 		for _, item := range items {
 			result[item.ID] = item.Name
@@ -494,18 +494,18 @@ func fetchTaxonomyChunk(ctx context.Context, opt Options, taxonomy string, ids [
 	}
 	if resp.StatusCode >= 400 {
 		payload, _ := io.ReadAll(resp.Body)
-		resp.Body.Close()
+		_ = resp.Body.Close()
 
 		return nil, fmt.Errorf("%s request failed: %s (%s)", taxonomy, resp.Status, string(payload))
 	}
 
 	var items []taxonomyItem
 	if err := decodeJSON(resp.Body, &items); err != nil {
-		resp.Body.Close()
+		_ = resp.Body.Close()
 
 		return nil, err
 	}
-	resp.Body.Close()
+	_ = resp.Body.Close()
 
 	result := make(map[int]string, len(items))
 	for _, item := range items {

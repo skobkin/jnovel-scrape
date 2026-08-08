@@ -372,17 +372,6 @@ func romanToInt(s string) (int, bool) {
 	return total, true
 }
 
-func isPunctuation(r rune) bool {
-	switch r {
-	case '-', '\u2013', '\u2014', ':', '|', '/', '\\', ',', '.', '!', '?':
-		return true
-	case '(', ')', '[', ']', '{', '}':
-		return true
-	default:
-		return false
-	}
-}
-
 func lastNumericToken(s string) string {
 	s = strings.TrimSpace(s)
 	if s == "" {
@@ -466,9 +455,8 @@ func ExtractVolumeFromLink(link string) (*float64, string, bool) {
 	original := cleaned
 	_, vol, extra := ExtractTitleAndVolume(cleaned)
 	if vol == nil {
-		if newClean, slugVol, ok := extractStandaloneVolume(cleaned); ok {
+		if _, slugVol, ok := extractStandaloneVolume(cleaned); ok {
 			vol = slugVol
-			cleaned = newClean
 		}
 	}
 	if extra == "" {
@@ -488,14 +476,11 @@ func ExtractVolumeFromLink(link string) (*float64, string, bool) {
 			}
 		}
 		if vol == nil {
-			if newBase, slugVol, ok := extractStandaloneVolume(slugBase); ok {
+			if _, slugVol, ok := extractStandaloneVolume(slugBase); ok {
 				vol = slugVol
-				slugBase = newBase
-			} else {
-				if token := lastNumericToken(slugBase); token != "" {
-					if num, err := strconv.ParseFloat(token, 64); err == nil {
-						vol = &num
-					}
+			} else if token := lastNumericToken(slugBase); token != "" {
+				if num, err := strconv.ParseFloat(token, 64); err == nil {
+					vol = &num
 				}
 			}
 		}

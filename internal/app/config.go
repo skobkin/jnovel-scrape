@@ -23,8 +23,11 @@ const (
 type Mode string
 
 const (
+	// ModeAuto lets the scraper prefer the API and fall back to HTML.
 	ModeAuto Mode = "auto"
-	ModeAPI  Mode = "api"
+	// ModeAPI forces the WordPress REST API only.
+	ModeAPI Mode = "api"
+	// ModeHTML forces HTML scraping only.
 	ModeHTML Mode = "html"
 )
 
@@ -32,7 +35,9 @@ const (
 type GroupMode string
 
 const (
-	GroupNone  GroupMode = "none"
+	// GroupNone keeps the default flat ordering.
+	GroupNone GroupMode = "none"
+	// GroupTitle groups posts by case-folded title.
 	GroupTitle GroupMode = "title"
 )
 
@@ -40,7 +45,9 @@ const (
 type GroupSort string
 
 const (
-	GroupSortAsc  GroupSort = "asc"
+	// GroupSortAsc sorts items within a group ascending.
+	GroupSortAsc GroupSort = "asc"
+	// GroupSortDesc sorts items within a group descending.
 	GroupSortDesc GroupSort = "desc"
 )
 
@@ -49,6 +56,7 @@ type stringList []string
 func (s *stringList) String() string { return strings.Join(*s, ",") }
 func (s *stringList) Set(value string) error {
 	*s = append(*s, value)
+
 	return nil
 }
 

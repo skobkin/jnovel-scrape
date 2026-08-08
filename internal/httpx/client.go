@@ -3,7 +3,7 @@ package httpx
 import (
 	"context"
 	"fmt"
-	"math/rand"
+	mathrand "math/rand"
 	"net/http"
 	"strconv"
 	"sync"
@@ -19,7 +19,7 @@ type Client struct {
 	maxRetries   int
 	jitterFactor float64
 
-	randSrc *rand.Rand
+	randSrc *mathrand.Rand
 	randMu  sync.Mutex
 }
 
@@ -68,7 +68,7 @@ func NewClient(reqInterval, limitWait time.Duration, opts ...ClientOption) *Clie
 		limitWait:    limitWait,
 		maxRetries:   5,
 		jitterFactor: 0.1,
-		randSrc:      rand.New(rand.NewSource(time.Now().UnixNano())),
+		randSrc:      mathrand.New(mathrand.NewSource(time.Now().UnixNano())), //nolint:gosec // G404: math/rand is appropriate for retry jitter; not security-sensitive.
 	}
 	for _, opt := range opts {
 		opt(c)
@@ -107,7 +107,7 @@ func (c *Client) Do(ctx context.Context, req *http.Request) (*http.Response, err
 		switch resp.StatusCode {
 		case http.StatusTooManyRequests, http.StatusServiceUnavailable:
 			wait := c.retryAfterDuration(resp)
-			resp.Body.Close()
+			_ = resp.Body.Close()
 			if attempt == c.maxRetries {
 				return nil, fmt.Errorf("retries exhausted after %d attempts (status %s)", attempt+1, resp.Status)
 			}
@@ -120,7 +120,7 @@ func (c *Client) Do(ctx context.Context, req *http.Request) (*http.Response, err
 
 		if resp.StatusCode >= 500 {
 			lastErr = fmt.Errorf("server error: %s", resp.Status)
-			resp.Body.Close()
+			_ = resp.Body.Close()
 			if attempt == c.maxRetries {
 				return nil, lastErr
 			}
@@ -165,7 +165,7 @@ func (c *Client) sleep(ctx context.Context, base time.Duration) error {
 	}
 	jittered := c.applyJitter(base)
 	timer := time.NewTimer(jittered)
-	defer timer.Stop()
+	defer func() { _ = timer.Stop() }()
 	select {
 	case <-timer.C:
 		return nil

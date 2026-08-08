@@ -18,7 +18,7 @@ func TestClientDoRetriesOnServerError(t *testing.T) {
 
 			return
 		}
-		io.WriteString(w, "ok")
+		_, _ = io.WriteString(w, "ok")
 	}))
 	defer server.Close()
 
@@ -53,7 +53,7 @@ func TestClientHandlesTooManyRequests(t *testing.T) {
 
 			return
 		}
-		io.WriteString(w, "ok")
+		_, _ = io.WriteString(w, "ok")
 	}))
 	defer server.Close()
 
@@ -72,7 +72,7 @@ func TestClientHandlesTooManyRequests(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Do() returned error: %v", err)
 	}
-	resp.Body.Close()
+	_ = resp.Body.Close()
 
 	if atomic.LoadInt32(&attempts) != 2 {
 		t.Fatalf("expected 2 attempts, got %d", attempts)
@@ -96,7 +96,8 @@ func TestClientExhaustsRetries(t *testing.T) {
 		t.Fatalf("new request: %v", err)
 	}
 
-	if _, err := client.Do(context.Background(), req); err == nil {
+	if resp, err := client.Do(context.Background(), req); err == nil {
+		_ = resp.Body.Close()
 		t.Fatalf("expected error after retries exhausted")
 	}
 }

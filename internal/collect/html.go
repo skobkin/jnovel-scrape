@@ -67,13 +67,13 @@ func FetchHTML(ctx context.Context, cutoff time.Time, opt Options) (model.Posts,
 		}
 		if resp.StatusCode >= 400 {
 			payload, _ := io.ReadAll(resp.Body)
-			resp.Body.Close()
+			_ = resp.Body.Close()
 
 			return nil, nil, fmt.Errorf("archive request failed: %s (%s)", resp.Status, string(payload))
 		}
 
 		body, err := io.ReadAll(resp.Body)
-		resp.Body.Close()
+		_ = resp.Body.Close()
 		if err != nil {
 			return nil, nil, fmt.Errorf("read archive: %w", err)
 		}
@@ -228,13 +228,13 @@ func fetchDetail(ctx context.Context, client *httpx.Client, userAgent string, ca
 	}
 	if resp.StatusCode >= 400 {
 		payload, _ := io.ReadAll(resp.Body)
-		resp.Body.Close()
+		_ = resp.Body.Close()
 
 		return detailResult{warnings: []string{fmt.Sprintf("%s unexpected status %s (%s) → skipped", candidate.Link, resp.Status, string(payload))}}
 	}
 
 	body, err := io.ReadAll(resp.Body)
-	resp.Body.Close()
+	_ = resp.Body.Close()
 	if err != nil {
 		return detailResult{warnings: []string{fmt.Sprintf("%s read error: %v → skipped", candidate.Link, err)}}
 	}

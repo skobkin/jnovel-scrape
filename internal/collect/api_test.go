@@ -1,3 +1,7 @@
+// Test handlers intentionally ignore Errors from httptest ResponseWriter
+// helpers; gosec G104 is a false positive in test code.
+//
+//nolint:gosec
 package collect
 
 import (

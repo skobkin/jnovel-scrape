@@ -111,7 +111,7 @@ func writeOutput(cfg Config, posts model.Posts, logger *Logger) error {
 		if err != nil {
 			return fmt.Errorf("open output path: %w", err)
 		}
-		defer file.Close()
+		defer func() { _ = file.Close() }()
 		writer = file
 	}
 
@@ -198,22 +198,22 @@ func sortGroupPosts(posts model.Posts, order GroupSort) {
 func compareWithinGroup(a, b model.Post, order GroupSort) bool {
 	av, hasA := volumeSortValue(a)
 	bv, hasB := volumeSortValue(b)
-	if hasA && hasB {
+	switch {
+	case hasA && hasB:
 		if av != bv {
 			if order == GroupSortDesc {
 				return av > bv
 			}
 
 			return av < bv
-		} else {
-			if res, ok := compareVolumeExtra(a.VolumeExtra, b.VolumeExtra, order); ok {
-				return res
-			}
 		}
-	} else if hasA != hasB {
+		if res, ok := compareVolumeExtra(a.VolumeExtra, b.VolumeExtra, order); ok {
+			return res
+		}
+	case hasA != hasB:
 		// Items with a volume number always sort before those without.
 		return hasA
-	} else {
+	default:
 		if res, ok := compareVolumeExtra(a.VolumeExtra, b.VolumeExtra, order); ok {
 			return res
 		}

@@ -16,6 +16,9 @@ func TestAllTypesIncludesUnknown(t *testing.T) {
 }
 
 func TestNormalizeType(t *testing.T) {
+	// " Manga " intentionally has surrounding whitespace to verify that
+	// NormalizeType trims input; the mapKey warning is expected here.
+	//nolint:gocritic // mapKey: whitespace is part of the test fixture.
 	cases := map[string]PostType{
 		"EPUB":    TypeEPUB,
 		"pdf":     TypePDF,
