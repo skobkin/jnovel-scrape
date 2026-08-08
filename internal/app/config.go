@@ -439,6 +439,16 @@ func parseRawConfig(k *koanf.Koanf, cfg Config) (Config, error) {
 	cfg.TitleFilters = titles
 
 	// --volume
+	//
+	// Reset cfg.VolumeFilter to nil first: mapstructure zero-initialises
+	// the *float64 field during koanf.Unmarshal even when the key is
+	// absent. A non-nil VolumeFilter pointing at 0.0 silently filters
+	// out every post that lacks a parsed volume — which is the vast
+	// majority of posts — making the CLI look like it returns nothing
+	// when in fact everything is being dropped by a phantom volume=0
+	// filter. We always start from nil and only set it when the user
+	// actually passed --volume / JN_VOLUME.
+	cfg.VolumeFilter = nil
 	if v := strings.TrimSpace(k.String("volume")); v != "" {
 		value, err := strconv.ParseFloat(v, 64)
 		if err != nil {
