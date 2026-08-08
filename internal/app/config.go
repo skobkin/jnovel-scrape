@@ -54,7 +54,6 @@ type Config struct {
 	Cutoff       time.Time
 	TypeFilters  map[model.PostType]struct{}
 	TypeList     []model.PostType
-	TitleFilter  string
 	TitleFilters []string
 	VolumeFilter *float64
 	OutputPath   string
@@ -96,8 +95,8 @@ func ParseArgs(args []string, output io.Writer) (Config, error) {
 	fs.StringVar(&typeList, "type", "", "Comma separated content types (epub,pdf,manga,unknown).")
 	fs.StringVar(&typeList, "t", "", "Alias for --type.")
 	fs.Var(&titleFilters, "title", "Case-insensitive title substring filter; may be repeated or comma-separated.")
-	fs.Var(&titleFilters, "name", "Alias for --title.")
-	fs.Var(&titleFilters, "n", "Alias for --title.")
+	fs.Var(&titleFilters, "name", "Alias for --title; may be repeated or comma-separated.")
+	fs.Var(&titleFilters, "n", "Alias for --title; may be repeated or comma-separated.")
 	fs.StringVar(&volumeStr, "volume", "", "Filter by volume number (integer or decimal).")
 	fs.StringVar(&volumeStr, "v", "", "Alias for --volume.")
 	fs.StringVar(&outPath, "out", "", "Output path for Markdown (default stdout).")
@@ -133,8 +132,8 @@ func ParseArgs(args []string, output io.Writer) (Config, error) {
 	}
 	cfg.Cutoff = time.Date(cutoff.Year(), cutoff.Month(), cutoff.Day(), 0, 0, 0, 0, time.UTC)
 
-	cfg.TitleFilter = strings.TrimSpace(strings.Join(titleFilters, ","))
-	for _, value := range strings.Split(cfg.TitleFilter, ",") {
+	joined := strings.TrimSpace(strings.Join(titleFilters, ","))
+	for _, value := range strings.Split(joined, ",") {
 		if value = strings.TrimSpace(value); value != "" {
 			cfg.TitleFilters = append(cfg.TitleFilters, value)
 		}

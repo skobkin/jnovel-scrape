@@ -110,8 +110,8 @@ func TestParseArgsSuccess(t *testing.T) {
 	if len(cfg.TypeList) != 2 || cfg.TypeList[0] != model.TypeEPUB || cfg.TypeList[1] != model.TypePDF {
 		t.Fatalf("unexpected type list: %+v", cfg.TypeList)
 	}
-	if cfg.TitleFilter != "dragon" {
-		t.Fatalf("unexpected title filter: %q", cfg.TitleFilter)
+	if len(cfg.TitleFilters) != 1 || cfg.TitleFilters[0] != "dragon" {
+		t.Fatalf("unexpected title filters: %v", cfg.TitleFilters)
 	}
 	if cfg.VolumeFilter == nil || *cfg.VolumeFilter != 3 {
 		t.Fatalf("unexpected volume filter: %v", cfg.VolumeFilter)
