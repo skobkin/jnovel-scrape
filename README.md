@@ -72,6 +72,38 @@ API mode uses `wp-json/wp/v2/posts` with `per_page=100`, `orderby=date`, and an 
 
 Warnings are emitted for partial records (e.g., blank volumes, `UNKNOWN` type, skipped posts without publish dates). These appear on stderr prefixed with `WARN`.
 
+## Configuration sources and precedence
+
+Settings are loaded in this order, with later sources overriding earlier ones:
+
+1. **Built-in defaults** for fetch mode, grouping, rate limits, paging,
+   and concurrency.
+2. **Environment variables** prefixed with `JNOVEL_`. Suffixes match
+   the long flag name (e.g. `JNOVEL_REQ_INTERVAL`, `JNOVEL_MAX_PAGES`).
+3. **CLI flags** (e.g. `--req-interval`, `--max-pages`).
+
+Slice-valued settings (currently just `--title`) use comma-separated
+form for both CLI and env: `--title "dragon,spice"` and
+`JNOVEL_TITLE="dragon,spice"` are equivalent. Repeated CLI flags
+(`--title "dragon" --title "spice"`) are also supported.
+
+### Environment variable reference
+
+| Env var | Equivalent flag | Notes |
+| --- | --- | --- |
+| `JNOVEL_UNTIL` | `--until` | Required, `YYYY-MM-DD`. |
+| `JNOVEL_TYPE` | `--type` | Comma-separated. |
+| `JNOVEL_TITLE` | `--title` | Comma-separated. |
+| `JNOVEL_VOLUME` | `--volume` | |
+| `JNOVEL_MODE` | `--mode` | `auto`, `api`, `html`. |
+| `JNOVEL_GROUP` | `--group` | `none`, `title`. |
+| `JNOVEL_GROUP_SORT` | `--group-sort` | `asc`, `desc`. |
+| `JNOVEL_REQ_INTERVAL` | `--req-interval` | Go duration string. |
+| `JNOVEL_LIMIT_WAIT` | `--limit-wait` | Go duration string. |
+| `JNOVEL_MAX_PAGES` | `--max-pages` | Positive integer. |
+| `JNOVEL_CONCURRENCY` | `--concurrency` | Positive integer. |
+| `JNOVEL_OUT` | `--out` | Output path (default stdout). |
+
 ## Rate Limiting
 
 - **Client-side throttle (`--req-interval`)**: Enforced for every HTTP request including taxonomy lookups and post detail fetches.
