@@ -121,3 +121,62 @@ func TestFoldedContains_AsciiSupersetOfContainsFold(t *testing.T) {
 		}
 	}
 }
+
+func TestNormalizeForSearch(t *testing.T) {
+	cases := []struct {
+		name string
+		in   string
+		want string
+	}{
+		{"empty", "", ""},
+		{"ascii no change", "Sword Art Online", "Sword Art Online"},
+		{"collapse spaces", "Sword  Art   Online", "Sword Art Online"},
+		{"trim leading and trailing", "   Sword Art Online   ", "Sword Art Online"},
+		{"tab treated as whitespace", "Sword	Art	Online", "Sword Art Online"},
+		{"newline treated as whitespace", "Sword\nArt\nOnline", "Sword Art Online"},
+		{"nbsp folded to space", "Sword\u00a0Art\u00a0Online", "Sword Art Online"},
+		{"mixed nbsp and space", "Sword\u00a0 Art   Online", "Sword Art Online"},
+		{"only whitespace", "   	\u00a0  ", ""},
+		{"ideographic space folded", "Sword\u3000Art\u3000Online", "Sword Art Online"},
+		{"preserves internal punctuation", "Re:Zero - Starting Life", "Re:Zero - Starting Life"},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			got := NormalizeForSearch(tc.in)
+			if got != tc.want {
+				t.Fatalf("NormalizeForSearch(%q) = %q, want %q", tc.in, got, tc.want)
+			}
+		})
+	}
+}
+
+// FoldedContains is whitespace- and NBSP-insensitive on the needle
+// side. Post titles are pre-normalised by CleanTitle so the
+// haystack normalisation is a no-op in practice, but it is
+// applied for defensive symmetry.
+func TestFoldedContains_WhitespaceAndNbspInsensitive(t *testing.T) {
+	cases := []struct {
+		name     string
+		haystack string
+		needle   string
+		want     bool
+	}{
+		{"multi-space needle matches", "Sword Art Online", "sword  art  online", true},
+		{"tab in needle matches", "Sword Art Online", "sword	art", true},
+		{"nbsp in needle matches", "Sword Art Online", "sword\u00a0art", true},
+		{"leading whitespace in needle", "Sword Art Online", "   sword art", true},
+		{"trailing whitespace in needle", "Sword Art Online", "sword art   ", true},
+		{"needle trims to empty substring of haystack", "Sword Art Online", "   	\u00a0  sword", true},
+		{"needle contains only whitespace", "Sword Art Online", "   	  ", true},
+		{"needle whitespace does not invent new characters", "Sword Art Online", "sword\u00a0art\u00a0online", true},
+		{"untrimmed haystack also normalised", "  Sword\u00a0Art\u00a0Online  ", "sword art", true},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			got := FoldedContains(tc.haystack, tc.needle)
+			if got != tc.want {
+				t.Fatalf("FoldedContains(%q, %q) = %v, want %v", tc.haystack, tc.needle, got, tc.want)
+			}
+		})
+	}
+}

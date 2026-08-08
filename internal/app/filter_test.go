@@ -132,3 +132,37 @@ func TestFilterPosts_TitleFilterMatchesAcrossMultipleTitleFilters(t *testing.T) 
 		t.Fatalf("expected 1 title drop, got %d", stats.TitleDropped)
 	}
 }
+
+// TestFilterPosts_TitleFilterNormalisesNeedleWhitespaceAndNbsp covers
+// commit 2's needle normalisation. The haystack is pre-normalised
+// by CleanTitle; the needle is taken as the user typed it. The
+// filter must accept needles with extra spaces, tabs, and NBSP
+// without silently dropping the post.
+func TestFilterPosts_TitleFilterNormalisesNeedleWhitespaceAndNbsp(t *testing.T) {
+	cases := []struct {
+		name   string
+		needle string
+	}{
+		{"multi-space", "sword  art  online"},
+		{"leading and trailing spaces", "   sword art online   "},
+		{"nbsp", "sword\u00a0art\u00a0online"},
+		{"mixed nbsp and space", "sword\u00a0 art   online"},
+		{"tabs", "sword	art	online"},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			cfg := Config{TitleFilters: []string{tc.needle}}
+			posts := model.Posts{
+				{Title: "Sword Art Online Volume 1", Date: time.Now()},
+				{Title: "Overlord Volume 2", Date: time.Now()},
+			}
+			filtered, stats := filterPosts(posts, cfg)
+			if len(filtered) != 1 {
+				t.Fatalf("needle %q: expected 1 post, got %d", tc.needle, len(filtered))
+			}
+			if stats.TitleDropped != 1 {
+				t.Fatalf("needle %q: expected 1 title drop, got %d", tc.needle, stats.TitleDropped)
+			}
+		})
+	}
+}

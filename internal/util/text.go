@@ -96,10 +96,48 @@ func ContainsFold(haystack, needle string) bool {
 // case (ASCII or otherwise) and to the presence of combining
 // marks: "Shūmatsu" matches "shuumatsu", "Sōsō" matches "soso",
 // and "Café" matches "cafe". An empty needle always matches.
+//
+// Both sides are also passed through NormalizeForSearch so that
+// the comparison is robust to non-breaking spaces and runs of
+// whitespace in either operand; in practice the haystack comes
+// pre-cleaned by CleanTitle and the needle is what benefits.
 func FoldedContains(haystack, needle string) bool {
 	if needle == "" {
 		return true
 	}
 
-	return strings.Contains(FoldForSearch(haystack), FoldForSearch(needle))
+	return strings.Contains(
+		FoldForSearch(NormalizeForSearch(haystack)),
+		FoldForSearch(NormalizeForSearch(needle)),
+	)
+}
+
+// NormalizeForSearch prepares a string for case-insensitive
+// substring matching: every Unicode whitespace rune (including
+// non-breaking space U+00A0) becomes a regular ASCII space,
+// runs of whitespace collapse to a single space, and the result
+// is trimmed. Unlike CleanTitle it does NOT strip HTML tags or
+// unescape entities — the needle side comes from the CLI and
+// the haystack side is already CleanTitle'd by the time it
+// reaches a comparison.
+func NormalizeForSearch(s string) string {
+	if s == "" {
+		return s
+	}
+
+	// We can't reuse the package-level whitespacePattern because
+	// Go's regexp \s class is ASCII-only — it does not match
+	// non-breaking space or any other Unicode whitespace. Use
+	// strings.Map so every Unicode-space rune is folded to a
+	// single ASCII space; the subsequent Fields call then
+	// collapses runs.
+	mapped := strings.Map(func(r rune) rune {
+		if unicode.IsSpace(r) {
+			return ' '
+		}
+
+		return r
+	}, s)
+
+	return strings.TrimSpace(strings.Join(strings.Fields(mapped), " "))
 }
