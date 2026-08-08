@@ -278,3 +278,29 @@ func parseGroupSort(raw string) (GroupSort, error) {
 		return "", fmt.Errorf("invalid --group-sort %q (expected asc, desc)", raw)
 	}
 }
+
+// configKeys returns the canonical (koanf key → env-var suffix) mapping for
+// every configuration field that can be set from defaults, env, or CLI flags.
+// Keeping the mapping in one place guarantees that the three sources stay in
+// sync: changing a key here propagates to all three providers and to the
+// struct tags used by koanf.Unmarshal.
+func configKeys() map[string]string {
+	return map[string]string{
+		"until":        "UNTIL",
+		"type":         "TYPE",
+		"title":        "TITLE",
+		"volume":       "VOLUME",
+		"mode":         "MODE",
+		"group":        "GROUP",
+		"group-sort":   "GROUP_SORT",
+		"req-interval": "REQ_INTERVAL",
+		"limit-wait":   "LIMIT_WAIT",
+		"max-pages":    "MAX_PAGES",
+		"concurrency":  "CONCURRENCY",
+		"out":          "OUT",
+	}
+}
+
+// envPrefix is prepended to every env-var name. Fixed for now; if a
+// configurable prefix is ever needed, expose it as a build flag.
+const envPrefix = "JNOVEL_"

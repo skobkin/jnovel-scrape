@@ -1,6 +1,7 @@
 package app
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/knadh/koanf/v2"
@@ -19,5 +20,23 @@ func TestKoanfIsImportable(t *testing.T) {
 	k = koanf.New(".")
 	if k == nil {
 		t.Fatalf("koanf.New returned nil")
+	}
+}
+
+func TestConfigKeysAreNonEmpty(t *testing.T) {
+	keys := configKeys()
+	if len(keys) == 0 {
+		t.Fatalf("configKeys() returned no keys")
+	}
+	for k, v := range keys {
+		if k == "" {
+			t.Fatalf("configKeys has an empty koanf key for env %q", v)
+		}
+		if v == "" {
+			t.Fatalf("configKeys has an empty env-var suffix for key %q", k)
+		}
+		if strings.ContainsAny(k, " 	\n") {
+			t.Fatalf("koanf key %q must not contain whitespace", k)
+		}
 	}
 }
