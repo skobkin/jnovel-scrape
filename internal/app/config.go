@@ -56,6 +56,22 @@ const (
 	GroupSortDesc GroupSort = "desc"
 )
 
+// TitleMode controls how the --title filter matches against post
+// titles. The default is TitleModeSubstring for full back-compat
+// with every release published before this type existed.
+type TitleMode string
+
+const (
+	// TitleModeSubstring keeps the historical behaviour: the
+	// needle is searched as a folded substring of the haystack.
+	TitleModeSubstring TitleMode = "substring"
+	// TitleModeWord tokenises the folded haystack on whitespace
+	// and matches when every needle token is present as a
+	// complete token. Useful for short generic words ("art",
+	// "no") whose substring matches are too noisy.
+	TitleModeWord TitleMode = "word"
+)
+
 // Config represents the fully-parsed CLI configuration.
 //
 // Field names are part of the package's public API and are referenced by
@@ -67,6 +83,7 @@ type Config struct {
 	TypeFilters  map[model.PostType]struct{} `koanf:"-"`
 	TypeList     []model.PostType            `koanf:"type"`
 	TitleFilters []string                    `koanf:"title"`
+	TitleMode    TitleMode                   `koanf:"title-mode"`
 	VolumeFilter *float64                    `koanf:"volume"`
 	OutputPath   string                      `koanf:"out"`
 	MaxPages     int                         `koanf:"max-pages"`
@@ -116,6 +133,7 @@ func loadConfig(fs *flag.FlagSet, args []string) (Config, error) {
 		keys["mode"]:         string(ModeAuto),
 		keys["group"]:        string(GroupNone),
 		keys["group-sort"]:   string(GroupSortAsc),
+		keys["title-mode"]:   string(TitleModeSubstring),
 		keys["req-interval"]: defaultReqInterval.String(),
 		keys["limit-wait"]:   defaultLimitWait.String(),
 		keys["max-pages"]:    strconv.Itoa(defaultMaxPages),
@@ -140,6 +158,7 @@ func loadConfig(fs *flag.FlagSet, args []string) (Config, error) {
 	fs.String("mode", defaults[keys["mode"]].(string), "Fetch mode: auto, api, html.")
 	fs.String("group", defaults[keys["group"]].(string), "Grouping strategy (none,title).")
 	fs.String("group-sort", defaults[keys["group-sort"]].(string), "Sort order within groups (asc,desc).")
+	fs.String("title-mode", defaults[keys["title-mode"]].(string), "Title match mode: substring (default) or word (whole-token).")
 	fs.String("req-interval", defaults[keys["req-interval"]].(string), "Delay between HTTP requests (time.ParseDuration).")
 	fs.String("limit-wait", defaults[keys["limit-wait"]].(string), "Delay when server rate limits without Retry-After.")
 	fs.String("max-pages", defaults[keys["max-pages"]].(string), "Maximum number of pages to traverse (API or HTML).")
@@ -324,6 +343,25 @@ func parseGroupSort(raw string) (GroupSort, error) {
 	}
 }
 
+func parseTitleMode(raw string) (TitleMode, error) {
+	switch strings.ToLower(strings.TrimSpace(raw)) {
+	case string(TitleModeSubstring):
+		return TitleModeSubstring, nil
+	case string(TitleModeWord):
+		return TitleModeWord, nil
+	case "":
+		// Empty value falls back to the confmap default (substring).
+		// parseRawConfig calls parseTitleMode with the raw flag/env
+		// value, so we must treat an empty string as "use default"
+		// rather than reject it. This keeps `JN_TITLE_MODE=` from
+		// failing when the user explicitly unsets a previously-set
+		// variable.
+		return TitleModeSubstring, nil
+	default:
+		return "", fmt.Errorf("invalid --title-mode %q (expected substring, word)", raw)
+	}
+}
+
 // configKeys returns the canonical (koanf key → env-var suffix) mapping for
 // every configuration field that can be set from defaults, env, or CLI flags.
 // Keeping the mapping in one place guarantees that the three sources stay in
@@ -334,6 +372,7 @@ func configKeys() map[string]string {
 		"until":        "UNTIL",
 		"type":         "TYPE",
 		"title":        "TITLE",
+		"title-mode":   "TITLE_MODE",
 		"volume":       "VOLUME",
 		"mode":         "MODE",
 		"group":        "GROUP",
@@ -491,6 +530,12 @@ func parseRawConfig(k *koanf.Koanf, cfg Config) (Config, error) {
 		return cfg, err
 	}
 	cfg.GroupSort = groupSort
+
+	titleMode, err := parseTitleMode(k.String("title-mode"))
+	if err != nil {
+		return cfg, err
+	}
+	cfg.TitleMode = titleMode
 
 	return cfg, nil
 }

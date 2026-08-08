@@ -141,3 +141,61 @@ func NormalizeForSearch(s string) string {
 
 	return strings.TrimSpace(strings.Join(strings.Fields(mapped), " "))
 }
+
+// FoldedWordContains reports whether every token of the needle
+// appears as a complete token in the haystack, after Unicode
+// case-folding and diacritic stripping. A "token" is a maximal
+// run of non-whitespace runes in the normalised string. An
+// empty needle matches anything (mirroring FoldedContains).
+//
+// In word mode the needle is a query like "no game no life" and
+// the haystack is a full post title; the post matches when every
+// word of the query appears as a discrete word in the title,
+// anywhere and in any order. This avoids the substring noise
+// that makes --title "art" match "Arte", "Kakuriyo no Yadomeshi:
+// Art", and any other title containing the letters "art".
+//
+// Token matching is set-based: a needle of "no no" matches any
+// title containing the word "no" at least once. Duplicate tokens
+// in the needle are not enforced as duplicates in the haystack.
+// This is intentional: a user searching "no game no life" is
+// expressing a phrase, not a multiset requirement, and set
+// semantics avoids surprises on the common queries.
+//
+// Matching is case- and diacritic-insensitive through the same
+// fold as FoldedContains, and whitespace-insensitive through the
+// same NormalizeForSearch.
+func FoldedWordContains(haystack, needle string) bool {
+	normalisedNeedle := NormalizeForSearch(needle)
+	if normalisedNeedle == "" {
+		return true
+	}
+
+	normalisedHaystack := NormalizeForSearch(haystack)
+	if normalisedHaystack == "" {
+		return false
+	}
+
+	needleTokens := strings.Fields(FoldForSearch(normalisedNeedle))
+	if len(needleTokens) == 0 {
+		return true
+	}
+
+	// Build the folded haystack once and split into tokens. We
+	// compare by membership in a set rather than scanning slices
+	// for every needle token, which is O(h + n) instead of
+	// O(h * n) for large titles.
+	haystackTokens := strings.Fields(FoldForSearch(normalisedHaystack))
+	tokenSet := make(map[string]struct{}, len(haystackTokens))
+	for _, t := range haystackTokens {
+		tokenSet[t] = struct{}{}
+	}
+
+	for _, t := range needleTokens {
+		if _, ok := tokenSet[t]; !ok {
+			return false
+		}
+	}
+
+	return true
+}

@@ -1,6 +1,7 @@
 package app
 
 import (
+	"strings"
 	"testing"
 	"time"
 
@@ -68,7 +69,6 @@ func TestParseGroupSort(t *testing.T) {
 		{"DESC", GroupSortDesc, true},
 		{"invalid", "", false},
 	}
-
 	for _, tc := range cases {
 		got, err := parseGroupSort(tc.input)
 		if tc.ok && err != nil {
@@ -83,11 +83,45 @@ func TestParseGroupSort(t *testing.T) {
 	}
 }
 
+func TestParseTitleMode(t *testing.T) {
+	cases := []struct {
+		input string
+		want  TitleMode
+		ok    bool
+	}{
+		{"substring", TitleModeSubstring, true},
+		{"SUBSTRING", TitleModeSubstring, true},
+		{"word", TitleModeWord, true},
+		{"WORD", TitleModeWord, true},
+		// Empty string is treated as "use the confmap default"
+		// rather than rejected, so a user can unset a
+		// previously-set JN_TITLE_MODE without causing the run
+		// to fail.
+		{"", TitleModeSubstring, true},
+		{"prefix", "", false},
+		{"regex", "", false},
+		{"exact", "", false},
+	}
+	for _, tc := range cases {
+		got, err := parseTitleMode(tc.input)
+		if tc.ok && err != nil {
+			t.Fatalf("parseTitleMode(%q) unexpected error: %v", tc.input, err)
+		}
+		if !tc.ok && err == nil {
+			t.Fatalf("parseTitleMode(%q) expected error", tc.input)
+		}
+		if tc.ok && got != tc.want {
+			t.Fatalf("parseTitleMode(%q) = %v, want %v", tc.input, got, tc.want)
+		}
+	}
+}
+
 func TestParseArgsSuccess(t *testing.T) {
 	args := []string{
 		"--until", "2025-02-01",
 		"--type", "epub,pdf",
 		"--title", "dragon",
+		"--title-mode", "word",
 		"--volume", "3",
 		"--out", "result.md",
 		"--mode", "api",
@@ -113,6 +147,9 @@ func TestParseArgsSuccess(t *testing.T) {
 	if len(cfg.TitleFilters) != 1 || cfg.TitleFilters[0] != "dragon" {
 		t.Fatalf("unexpected title filters: %v", cfg.TitleFilters)
 	}
+	if cfg.TitleMode != TitleModeWord {
+		t.Fatalf("unexpected title mode: %s", cfg.TitleMode)
+	}
 	if cfg.VolumeFilter == nil || *cfg.VolumeFilter != 3 {
 		t.Fatalf("unexpected volume filter: %v", cfg.VolumeFilter)
 	}
@@ -136,6 +173,63 @@ func TestParseArgsSuccess(t *testing.T) {
 	}
 	if cfg.LimitWait != 300*time.Millisecond {
 		t.Fatalf("unexpected limit wait: %s", cfg.LimitWait)
+	}
+}
+
+// TestParseArgsTitleModeDefault ensures the default is substring
+// (full back-compat) when no --title-mode flag or env var is set.
+func TestParseArgsTitleModeDefault(t *testing.T) {
+	cfg, err := ParseArgs([]string{"--until", "2025-02-01"}, nil)
+	if err != nil {
+		t.Fatalf("ParseArgs() unexpected error: %v", err)
+	}
+	if cfg.TitleMode != TitleModeSubstring {
+		t.Fatalf("default title mode: got %s, want %s", cfg.TitleMode, TitleModeSubstring)
+	}
+}
+
+// TestParseArgsTitleModeEnv covers the JN_TITLE_MODE env var
+// path, including the empty-string unset case which must NOT
+// fail (parseTitleMode returns the confmap default in that
+// case).
+func TestParseArgsTitleModeEnv(t *testing.T) {
+	t.Setenv("JN_TITLE_MODE", "word")
+	cfg, err := ParseArgs([]string{"--until", "2025-02-01"}, nil)
+	if err != nil {
+		t.Fatalf("ParseArgs() unexpected error: %v", err)
+	}
+	if cfg.TitleMode != TitleModeWord {
+		t.Fatalf("JN_TITLE_MODE=word: got %s, want %s", cfg.TitleMode, TitleModeWord)
+	}
+}
+
+// TestParseArgsTitleModeInvalid covers the error path: a value
+// that is neither substring nor word (and not empty) must be
+// rejected at parse time, with a message that names the flag.
+func TestParseArgsTitleModeInvalid(t *testing.T) {
+	_, err := ParseArgs([]string{"--until", "2025-02-01", "--title-mode", "exact"}, nil)
+	if err == nil {
+		t.Fatalf("expected error for invalid --title-mode value")
+	}
+	if !strings.Contains(err.Error(), "--title-mode") {
+		t.Fatalf("expected error to mention --title-mode, got: %v", err)
+	}
+}
+
+// TestParseArgsTitleModeFlagOverridesEnv verifies the layering
+// rule: defaults -> env -> flags, so a flag value wins over an
+// env value.
+func TestParseArgsTitleModeFlagOverridesEnv(t *testing.T) {
+	t.Setenv("JN_TITLE_MODE", "word")
+	cfg, err := ParseArgs([]string{
+		"--until", "2025-02-01",
+		"--title-mode", "substring",
+	}, nil)
+	if err != nil {
+		t.Fatalf("ParseArgs() unexpected error: %v", err)
+	}
+	if cfg.TitleMode != TitleModeSubstring {
+		t.Fatalf("flag should override env: got %s, want %s", cfg.TitleMode, TitleModeSubstring)
 	}
 }
 

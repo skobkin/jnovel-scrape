@@ -33,9 +33,17 @@ func filterPosts(posts model.Posts, cfg Config) (model.Posts, FilterStats) {
 		if len(cfg.TitleFilters) > 0 {
 			matched := false
 			for _, title := range cfg.TitleFilters {
-				if util.FoldedContains(post.Title, title) {
-					matched = true
-
+				switch cfg.TitleMode {
+				case TitleModeWord:
+					if util.FoldedWordContains(post.Title, title) {
+						matched = true
+					}
+				default:
+					if util.FoldedContains(post.Title, title) {
+						matched = true
+					}
+				}
+				if matched {
 					break
 				}
 			}

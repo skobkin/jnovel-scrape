@@ -166,3 +166,111 @@ func TestFilterPosts_TitleFilterNormalisesNeedleWhitespaceAndNbsp(t *testing.T) 
 		})
 	}
 }
+
+// TestFilterPosts_TitleFilterWordMode uses the post-fix behaviour
+// for the new --title-mode=word option. Word mode requires every
+// needle token to appear as a complete token in the title.
+func TestFilterPosts_TitleFilterWordMode(t *testing.T) {
+	cfg := Config{
+		TitleFilters: []string{"art"},
+		TitleMode:    TitleModeWord,
+	}
+	posts := model.Posts{
+		{Title: "Sword Art Online", Date: time.Now()},
+		{Title: "Arte", Date: time.Now()},
+		{Title: "Departure", Date: time.Now()},
+		{Title: "Heart no Kuni no Alice", Date: time.Now()},
+		{Title: "Smartphone Isekai", Date: time.Now()},
+		{Title: "Party of Heroes", Date: time.Now()},
+	}
+	filtered, stats := filterPosts(posts, cfg)
+	if len(filtered) != 1 {
+		t.Fatalf("expected 1 post (only 'Sword Art Online'), got %d: %+v", len(filtered), titles(filtered))
+	}
+	if filtered[0].Title != "Sword Art Online" {
+		t.Fatalf("expected 'Sword Art Online', got %q", filtered[0].Title)
+	}
+	if stats.TitleDropped != 5 {
+		t.Fatalf("expected 5 title drops, got %d", stats.TitleDropped)
+	}
+}
+
+// TestFilterPosts_TitleFilterWordModeMultiToken covers multi-word
+// needles and out-of-order matching. "no game" must match "No
+// Game No Life" (both words present, one duplicated) and not
+// match a title that only has one of the tokens.
+func TestFilterPosts_TitleFilterWordModeMultiToken(t *testing.T) {
+	cfg := Config{
+		TitleFilters: []string{"no game"},
+		TitleMode:    TitleModeWord,
+	}
+	posts := model.Posts{
+		{Title: "No Game No Life", Date: time.Now()},
+		{Title: "Game of Thrones", Date: time.Now()},
+		{Title: "No Tomorrow", Date: time.Now()},
+		{Title: "Sword Art Online", Date: time.Now()},
+	}
+	filtered, stats := filterPosts(posts, cfg)
+	if len(filtered) != 1 {
+		t.Fatalf("expected 1 post, got %d: %+v", len(filtered), titles(filtered))
+	}
+	if filtered[0].Title != "No Game No Life" {
+		t.Fatalf("expected 'No Game No Life', got %q", filtered[0].Title)
+	}
+	if stats.TitleDropped != 3 {
+		t.Fatalf("expected 3 title drops, got %d", stats.TitleDropped)
+	}
+}
+
+// TestFilterPosts_TitleFilterWordModeUnicode verifies word-mode
+// folding: tokens fold through the same Unicode + diacritic
+// pipeline as substring mode.
+func TestFilterPosts_TitleFilterWordModeUnicode(t *testing.T) {
+	cfg := Config{
+		TitleFilters: []string{"valkyrie"},
+		TitleMode:    TitleModeWord,
+	}
+	posts := model.Posts{
+		{Title: "Shūmatsu no Valkyrie", Date: time.Now()},
+		{Title: "Valkyrie Drive", Date: time.Now()},
+		{Title: "Sword Art Online", Date: time.Now()},
+	}
+	filtered, stats := filterPosts(posts, cfg)
+	if len(filtered) != 2 {
+		t.Fatalf("expected 2 posts, got %d: %+v", len(filtered), titles(filtered))
+	}
+	if stats.TitleDropped != 1 {
+		t.Fatalf("expected 1 title drop, got %d", stats.TitleDropped)
+	}
+}
+
+// TestFilterPosts_TitleFilterSubstringIsDefault is a regression
+// guard: if a caller constructs Config manually without setting
+// TitleMode, the filter must still use the historical substring
+// path. This is what the empty-string fallback in
+// parseTitleMode buys us, but the filter is what actually
+// dispatches on TitleMode so the guard belongs at this layer.
+func TestFilterPosts_TitleFilterSubstringIsDefault(t *testing.T) {
+	cfg := Config{TitleFilters: []string{"art"}}
+	posts := model.Posts{
+		{Title: "Sword Art Online", Date: time.Now()},
+		{Title: "Arte", Date: time.Now()},
+		{Title: "Departure", Date: time.Now()},
+	}
+	filtered, stats := filterPosts(posts, cfg)
+	if len(filtered) != 3 {
+		t.Fatalf("default substring mode should match all three, got %d", len(filtered))
+	}
+	if stats.TitleDropped != 0 {
+		t.Fatalf("default substring mode: expected 0 drops, got %d", stats.TitleDropped)
+	}
+}
+
+func titles(posts model.Posts) []string {
+	out := make([]string, 0, len(posts))
+	for _, p := range posts {
+		out = append(out, p.Title)
+	}
+
+	return out
+}

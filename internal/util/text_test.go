@@ -180,3 +180,63 @@ func TestFoldedContains_WhitespaceAndNbspInsensitive(t *testing.T) {
 		})
 	}
 }
+
+func TestFoldedWordContains(t *testing.T) {
+	cases := []struct {
+		name     string
+		haystack string
+		needle   string
+		want     bool
+	}{
+		{"empty needle matches", "Anything Goes", "", true},
+		{"whitespace-only needle matches", "Anything Goes", "   	\u00a0  ", true},
+		{"single word present", "Sword Art Online", "sword", true},
+		{"single word case insensitive", "Sword Art Online", "ART", true},
+		{"all words present in order", "Sword Art Online", "sword art", true},
+		{"all words present out of order", "Sword Art Online", "art sword", true},
+		{"missing word", "Sword Art Online", "sword life", false},
+		{"word boundary prevents substring match", "Sword Art Online", "art", true},
+		{"substring only is rejected", "Arte", "art", false},
+		{"hyphenated word counts as one token", "Re:Zero - Starting Life in Another World", "re:zero", true},
+		{"unicode word boundary", "Shūmatsu no Valkyrie", "valkyrie", true},
+		{"unicode word boundary ascii needle", "Shūmatsu no Valkyrie", "shumatsu", true},
+		{"unicode word missing", "Shūmatsu no Valkyrie", "shuumatsu", false},
+		{"nbsp inside needle is treated as whitespace", "Sword Art Online", "sword\u00a0art", true},
+		{"empty haystack no match", "", "sword", false},
+		{"needle single token matches diacritic", "Café Stéreo", "cafe", true},
+		{"duplicate needle tokens are collapsed (set semantics)", "No Game No Life", "no no no", true},
+		{"duplicate needle token missing once still succeeds by set membership", "No Game Life", "no no", true},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			got := FoldedWordContains(tc.haystack, tc.needle)
+			if got != tc.want {
+				t.Fatalf("FoldedWordContains(%q, %q) = %v, want %v", tc.haystack, tc.needle, got, tc.want)
+			}
+		})
+	}
+}
+
+// TestFoldedWordContains_RejectsSubstringNoise demonstrates the
+// noise that the word mode was added to suppress. Searching for
+// "art" in substring mode matches every title containing the
+// letters a-r-t; word mode rejects anything where "art" is not
+// a complete token.
+func TestFoldedWordContains_RejectsSubstringNoise(t *testing.T) {
+	titles := []string{
+		"Sword Art Online",
+		"Arte",
+		"Departure",
+		"Heart no Kuni no Alice",
+		"Smartphone Isekai",
+		"Party of Heroes",
+	}
+	for _, title := range titles {
+		t.Run(title, func(t *testing.T) {
+			// "art" as a whole token only matches the first title.
+			if got, want := FoldedWordContains(title, "art"), title == "Sword Art Online"; got != want {
+				t.Fatalf("FoldedWordContains(%q, %q) = %v, want %v", title, "art", got, want)
+			}
+		})
+	}
+}

@@ -39,7 +39,8 @@ Slice values (`--title`) accept either repeated flags (`--title a --title b`) or
 | --- | --- | --- | --- | --- |
 | `--until` | `JN_UNTIL` | — | ✅ | Cutoff date (`YYYY-MM-DD`); only posts on/after this date are kept. |
 | `--type`, `-t` | `JN_TYPE` | — | ❌ | Comma-separated subset of `epub,pdf,manga,unknown` (case-insensitive). |
-| `--title`, `--name`, `-n` | `JN_TITLE` | — | ❌ | Case-insensitive title substring filter; repeat the flag or use comma-separated values. |
+| `--title`, `--name`, `-n` | `JN_TITLE` | — | ❌ | Unicode-aware case- and diacritic-insensitive title filter; repeat the flag or use comma-separated values. Whitespace and non-breaking spaces in the needle are normalised. |
+| `--title-mode` | `JN_TITLE_MODE` | `substring` | ❌ | `substring` (default) or `word` — `word` matches each token of the needle as a complete token in the title, suppressing substring noise. |
 | `--volume`, `-v` | `JN_VOLUME` | — | ❌ | Exact volume (integer or decimal); posts without a parsed volume are dropped. |
 | `--out` | `JN_OUT` | stdout | ❌ | Output file path. |
 | `--max-pages` | `JN_MAX_PAGES` | `2000` | ❌ | Safety limit when paging. |
@@ -61,6 +62,14 @@ Slice values (`--title`) accept either repeated flags (`--title a --title b`) or
   --req-interval 1s \
   --out mercenary.md
 ```
+
+### Title matching
+
+The `--title` filter is case- and diacritic-insensitive under Unicode rules, so `--title "shumatsu"`, `--title "Shūmatsu"`, and `--title "SHUMATSU"` all match a post titled *Shūmatsu no Valkyrie* (Unicode case-fold never expands letters, so a macroned `ū` folds to a single `u` rather than two). Whitespace and non-breaking spaces in the needle are normalised before comparison, so a needle copy-pasted from a rich-text editor still works.
+
+By default, the filter is **substring**: any post whose title contains the folded needle is kept. This is the historical behaviour and stays the default for full back-compat.
+
+With `--title-mode word`, the needle is split on whitespace into tokens and a post matches only when every token appears as a complete token in the title. Use this when a substring search is too greedy — `--title "art" --title-mode word` matches *Sword Art Online* but not *Arte*, *Departure*, or *Heart no Kuni no Alice*.
 
 ## Modes & Fallback
 

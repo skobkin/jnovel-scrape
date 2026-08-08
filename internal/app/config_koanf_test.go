@@ -197,3 +197,48 @@ func TestParseArgsEnvTitleCommaSplit(t *testing.T) {
 		t.Fatalf("TitleFilters: got %v", cfg.TitleFilters)
 	}
 }
+
+// TestParseArgsEnvTitleModeLayering confirms JN_TITLE_MODE reaches
+// the Config through the env-var layer (the koanf env provider +
+// parseRawConfig), and that the same env var is overridden by
+// the matching --title-mode flag.
+func TestParseArgsEnvTitleModeLayering(t *testing.T) {
+	t.Setenv("JN_UNTIL", "2025-03-15")
+	t.Setenv("JN_TITLE_MODE", "word")
+
+	cfg, err := ParseArgs(nil, nil)
+	if err != nil {
+		t.Fatalf("ParseArgs() unexpected error: %v", err)
+	}
+	if cfg.TitleMode != TitleModeWord {
+		t.Fatalf("env layer: got %s, want %s", cfg.TitleMode, TitleModeWord)
+	}
+
+	// Same env, but a flag should win.
+	cfg, err = ParseArgs([]string{"--title-mode", "substring"}, nil)
+	if err != nil {
+		t.Fatalf("ParseArgs() with flag unexpected error: %v", err)
+	}
+	if cfg.TitleMode != TitleModeSubstring {
+		t.Fatalf("flag should override env: got %s, want %s", cfg.TitleMode, TitleModeSubstring)
+	}
+}
+
+// TestParseArgsTitleModeAbsentDefaultsToSubstring covers the
+// regression-guard for the empty-string unset case: setting
+// JN_TITLE_MODE="" must not error and must leave the default
+// (substring) in place. This is what enables a user to
+// "JN_TITLE_MODE=" in a wrapper script to forcibly clear a
+// previously-set value.
+func TestParseArgsTitleModeAbsentDefaultsToSubstring(t *testing.T) {
+	t.Setenv("JN_UNTIL", "2025-03-15")
+	t.Setenv("JN_TITLE_MODE", "")
+
+	cfg, err := ParseArgs(nil, nil)
+	if err != nil {
+		t.Fatalf("ParseArgs() unexpected error: %v", err)
+	}
+	if cfg.TitleMode != TitleModeSubstring {
+		t.Fatalf("got %s, want %s", cfg.TitleMode, TitleModeSubstring)
+	}
+}
