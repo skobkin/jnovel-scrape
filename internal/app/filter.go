@@ -29,9 +29,18 @@ func filterPosts(posts model.Posts, cfg Config) (model.Posts, FilterStats) {
 			}
 		}
 
-		if cfg.TitleFilter != "" && !util.ContainsFold(post.Title, cfg.TitleFilter) {
-			stats.TitleDropped++
-			continue
+		if len(cfg.TitleFilters) > 0 {
+			matched := false
+			for _, title := range cfg.TitleFilters {
+				if util.ContainsFold(post.Title, title) {
+					matched = true
+					break
+				}
+			}
+			if !matched {
+				stats.TitleDropped++
+				continue
+			}
 		}
 
 		if cfg.VolumeFilter != nil {

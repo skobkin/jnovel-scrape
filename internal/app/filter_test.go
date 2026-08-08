@@ -71,3 +71,20 @@ func TestFilterPosts_TypeFilter(t *testing.T) {
 		t.Fatalf("expected EPUB entry, got %v", filtered[0].Type)
 	}
 }
+
+func TestFilterPosts_MatchesAnyTitleFilterCaseInsensitively(t *testing.T) {
+	cfg := Config{TitleFilters: []string{"sword art online", "OVERLORD"}}
+	posts := model.Posts{
+		{Title: "Sword Art Online Volume 1", Date: time.Now()},
+		{Title: "overlord Volume 2", Date: time.Now()},
+		{Title: "Re:Zero Volume 3", Date: time.Now()},
+	}
+
+	filtered, stats := filterPosts(posts, cfg)
+	if len(filtered) != 2 {
+		t.Fatalf("expected 2 posts, got %d", len(filtered))
+	}
+	if stats.TitleDropped != 1 {
+		t.Fatalf("expected 1 title drop, got %d", stats.TitleDropped)
+	}
+}

@@ -39,7 +39,7 @@ Common flags:
 | --- | --- |
 | `--until <date>` | Required cutoff date (`YYYY-MM-DD`). Only posts on/after this date are kept. |
 | `--type, -t <list>` | Comma-separated subset of `epub,pdf,manga,unknown` (case-insensitive). |
-| `--title, --name, -n <substr>` | Case-insensitive title substring filter. |
+| `--title, --name, -n <substr>` | Case-insensitive title substring filter; repeat the flag or provide comma-separated values to match any title. |
 | `--volume, -v <num>` | Filter by exact volume (integer or decimal). Posts without a recognised volume are dropped. |
 | `--out <path>` | Output file. Default is `stdout`. |
 | `--max-pages <int>` | Safety limit when paging (default `2000`). |

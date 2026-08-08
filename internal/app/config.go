@@ -44,12 +44,18 @@ const (
 	GroupSortDesc GroupSort = "desc"
 )
 
+type stringList []string
+
+func (s *stringList) String() string         { return strings.Join(*s, ",") }
+func (s *stringList) Set(value string) error { *s = append(*s, value); return nil }
+
 // Config represents the fully-parsed CLI configuration.
 type Config struct {
 	Cutoff       time.Time
 	TypeFilters  map[model.PostType]struct{}
 	TypeList     []model.PostType
 	TitleFilter  string
+	TitleFilters []string
 	VolumeFilter *float64
 	OutputPath   string
 	MaxPages     int
@@ -74,7 +80,7 @@ func ParseArgs(args []string, output io.Writer) (Config, error) {
 	var (
 		until          string
 		typeList       string
-		titleFilter    string
+		titleFilters   stringList
 		reqIntervalStr string
 		limitWaitStr   string
 		volumeStr      string
@@ -89,9 +95,9 @@ func ParseArgs(args []string, output io.Writer) (Config, error) {
 	fs.StringVar(&until, "until", "", "Cutoff date (YYYY-MM-DD). Required.")
 	fs.StringVar(&typeList, "type", "", "Comma separated content types (epub,pdf,manga,unknown).")
 	fs.StringVar(&typeList, "t", "", "Alias for --type.")
-	fs.StringVar(&titleFilter, "title", "", "Case-insensitive title substring filter.")
-	fs.StringVar(&titleFilter, "name", "", "Alias for --title.")
-	fs.StringVar(&titleFilter, "n", "", "Alias for --title.")
+	fs.Var(&titleFilters, "title", "Case-insensitive title substring filter; may be repeated or comma-separated.")
+	fs.Var(&titleFilters, "name", "Alias for --title.")
+	fs.Var(&titleFilters, "n", "Alias for --title.")
 	fs.StringVar(&volumeStr, "volume", "", "Filter by volume number (integer or decimal).")
 	fs.StringVar(&volumeStr, "v", "", "Alias for --volume.")
 	fs.StringVar(&outPath, "out", "", "Output path for Markdown (default stdout).")
@@ -127,7 +133,12 @@ func ParseArgs(args []string, output io.Writer) (Config, error) {
 	}
 	cfg.Cutoff = time.Date(cutoff.Year(), cutoff.Month(), cutoff.Day(), 0, 0, 0, 0, time.UTC)
 
-	cfg.TitleFilter = strings.TrimSpace(titleFilter)
+	cfg.TitleFilter = strings.TrimSpace(strings.Join(titleFilters, ","))
+	for _, value := range strings.Split(cfg.TitleFilter, ",") {
+		if value = strings.TrimSpace(value); value != "" {
+			cfg.TitleFilters = append(cfg.TitleFilters, value)
+		}
+	}
 	cfg.OutputPath = strings.TrimSpace(outPath)
 
 	reqInterval, err := time.ParseDuration(reqIntervalStr)
