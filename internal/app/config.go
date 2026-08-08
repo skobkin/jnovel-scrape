@@ -8,6 +8,9 @@ import (
 	"strings"
 	"time"
 
+	"github.com/knadh/koanf/v2"
+	koanfconfmap "github.com/knadh/koanf/providers/confmap"
+
 	"git.skobk.in/skobkin/jnovel-scrape/internal/model"
 )
 
@@ -61,21 +64,26 @@ func (s *stringList) Set(value string) error {
 }
 
 // Config represents the fully-parsed CLI configuration.
+//
+// Field names are part of the package's public API and are referenced by
+// the rest of internal/app (filter.go, run.go) and by every test. Do not
+// rename; add a `koanf:"<key>"` tag to make the field unmarshallable
+// from a flat koanf instance. Use `koanf:"-"` to skip a field.
 type Config struct {
-	Cutoff       time.Time
-	TypeFilters  map[model.PostType]struct{}
-	TypeList     []model.PostType
-	TitleFilters []string
-	VolumeFilter *float64
-	OutputPath   string
-	MaxPages     int
-	Concurrency  int
-	ReqInterval  time.Duration
-	LimitWait    time.Duration
-	UserAgent    string
-	Mode         Mode
-	GroupMode    GroupMode
-	GroupSort    GroupSort
+	Cutoff       time.Time                   `koanf:"-"`
+	TypeFilters  map[model.PostType]struct{} `koanf:"-"`
+	TypeList     []model.PostType            `koanf:"type"`
+	TitleFilters []string                    `koanf:"title"`
+	VolumeFilter *float64                    `koanf:"volume"`
+	OutputPath   string                      `koanf:"out"`
+	MaxPages     int                         `koanf:"max-pages"`
+	Concurrency  int                         `koanf:"concurrency"`
+	ReqInterval  time.Duration               `koanf:"req-interval"`
+	LimitWait    time.Duration               `koanf:"limit-wait"`
+	UserAgent    string                      `koanf:"-"`
+	Mode         Mode                        `koanf:"mode"`
+	GroupMode    GroupMode                   `koanf:"group"`
+	GroupSort    GroupSort                   `koanf:"group-sort"`
 }
 
 // ParseArgs parses CLI flags into a Config.
@@ -304,3 +312,39 @@ func configKeys() map[string]string {
 // envPrefix is prepended to every env-var name. Fixed for now; if a
 // configurable prefix is ever needed, expose it as a build flag.
 const envPrefix = "JNOVEL_"
+
+// unmarshalConfig fills a Config from a flat map. It is the one place
+// where the layered koanf instance is converted into a Config.
+//
+// The map's value types follow koanf's conventions: scalars arrive as
+// strings, slices arrive as []string. Parsing of those raw values into
+// the strongly-typed Config fields (cutoff date, durations, enum-typed
+// modes, etc.) happens in parseRawConfig, which this function calls
+// after unmarshalling.
+func unmarshalConfig(raw map[string]any) (Config, error) {
+	k := koanf.New(".")
+	if err := k.Load(koanfconfmap.Provider(raw, "."), nil); err != nil {
+		return Config{}, fmt.Errorf("load raw config: %w", err)
+	}
+	var cfg Config
+	if err := k.Unmarshal("", &cfg); err != nil {
+		return Config{}, fmt.Errorf("unmarshal config: %w", err)
+	}
+
+	return parseRawConfig(k, cfg)
+}
+
+// parseRawConfig post-processes the unmarshalled Config to derive fields
+// that aren't a straight map → struct copy: parsing cutoff dates,
+// durations, mode enums, type filter maps, and the volume filter pointer.
+//
+// The koanf instance is passed in so we can read the raw string form
+// of each field (via k.String) for things that need post-hoc parsing
+// without re-introducing a `[]any` → `[]string` reconciliation layer.
+//
+// This stub is filled in by Task 4; for now it only copies the
+// strongly-typed fields so TestConfigUnmarshalFromFlatMap can pass.
+func parseRawConfig(k *koanf.Koanf, cfg Config) (Config, error) {
+	_ = k
+	return cfg, nil
+}
