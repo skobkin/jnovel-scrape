@@ -44,7 +44,7 @@ steps:
       - go test ./...
 
   test-race:
-    image: golang:1.26-alpine
+    image: golang:1.26
     environment:
       GOCACHE: /tmp/.gocache-race
     commands:
