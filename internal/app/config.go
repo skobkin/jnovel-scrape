@@ -184,10 +184,12 @@ func loadConfig(fs *flag.FlagSet, args []string) (Config, error) {
 	return cfg, nil
 }
 
-// envKey maps an env-var suffix (e.g. "TYPE") to a koanf key (e.g.
-// "type") using the keys registry. The prefix is supplied separately
-// to the env provider, so this callback only sees the suffix.
-func envKey(suffix string, keys map[string]string) string {
+// envKey maps an env-var name (e.g. "JNOVEL_TYPE") to a koanf key
+// (e.g. "type") using the keys registry. The env provider in
+// v1.1.0 passes the full name (including the prefix) to the
+// callback, so we strip the prefix before lookup.
+func envKey(fullName string, keys map[string]string) string {
+	suffix := strings.TrimPrefix(fullName, envPrefix)
 	for k, v := range keys {
 		if v == suffix {
 			return k

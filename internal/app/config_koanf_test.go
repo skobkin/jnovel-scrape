@@ -142,3 +142,58 @@ func TestParseArgsThroughKoanf_MissingUntilFails(t *testing.T) {
 		t.Fatalf("expected error when --until is missing")
 	}
 }
+
+func TestParseArgsEnvOverridesDefaults(t *testing.T) {
+	t.Setenv("JNOVEL_UNTIL", "2025-03-15")
+	t.Setenv("JNOVEL_TYPE", "manga")
+	t.Setenv("JNOVEL_MODE", "html")
+	t.Setenv("JNOVEL_MAX_PAGES", "7")
+
+	cfg, err := ParseArgs(nil, nil)
+	if err != nil {
+		t.Fatalf("ParseArgs() unexpected error: %v", err)
+	}
+	if cfg.Cutoff.Format("2006-01-02") != "2025-03-15" {
+		t.Fatalf("Cutoff: got %v", cfg.Cutoff)
+	}
+	if len(cfg.TypeList) != 1 || cfg.TypeList[0] != model.TypeManga {
+		t.Fatalf("TypeList: got %v", cfg.TypeList)
+	}
+	if cfg.Mode != ModeHTML {
+		t.Fatalf("Mode: got %v", cfg.Mode)
+	}
+	if cfg.MaxPages != 7 {
+		t.Fatalf("MaxPages: got %d", cfg.MaxPages)
+	}
+}
+
+func TestParseArgsFlagOverridesEnv(t *testing.T) {
+	t.Setenv("JNOVEL_UNTIL", "2025-03-15")
+	t.Setenv("JNOVEL_MODE", "html")
+
+	cfg, err := ParseArgs([]string{"--mode", "api"}, nil)
+	if err != nil {
+		t.Fatalf("ParseArgs() unexpected error: %v", err)
+	}
+	// --until comes from env (no CLI override), so it's preserved.
+	if cfg.Cutoff.Format("2006-01-02") != "2025-03-15" {
+		t.Fatalf("Cutoff: got %v", cfg.Cutoff)
+	}
+	// --mode is overridden by the CLI flag, so env yields.
+	if cfg.Mode != ModeAPI {
+		t.Fatalf("Mode: got %v, want api", cfg.Mode)
+	}
+}
+
+func TestParseArgsEnvTitleCommaSplit(t *testing.T) {
+	t.Setenv("JNOVEL_UNTIL", "2025-03-15")
+	t.Setenv("JNOVEL_TITLE", "dragon,spice")
+
+	cfg, err := ParseArgs(nil, nil)
+	if err != nil {
+		t.Fatalf("ParseArgs() unexpected error: %v", err)
+	}
+	if len(cfg.TitleFilters) != 2 || cfg.TitleFilters[0] != "dragon" || cfg.TitleFilters[1] != "spice" {
+		t.Fatalf("TitleFilters: got %v", cfg.TitleFilters)
+	}
+}
