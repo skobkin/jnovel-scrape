@@ -334,17 +334,116 @@ func unmarshalConfig(raw map[string]any) (Config, error) {
 	return parseRawConfig(k, cfg)
 }
 
-// parseRawConfig post-processes the unmarshalled Config to derive fields
-// that aren't a straight map → struct copy: parsing cutoff dates,
-// durations, mode enums, type filter maps, and the volume filter pointer.
+// parseRawConfig post-processes the unmarshalled Config. It parses raw
+// string values (cutoff dates, durations, enum-typed modes, comma-
+// separated type lists, optional volume filter) and validates that
+// required fields are present and that numeric ranges are positive.
 //
-// The koanf instance is passed in so we can read the raw string form
-// of each field (via k.String) for things that need post-hoc parsing
-// without re-introducing a `[]any` → `[]string` reconciliation layer.
+// Reading from the koanf instance via k.String() (not the unmarshalled
+// struct) is intentional: it gives us the raw string the user supplied,
+// which is what we want to surface in error messages like
+// "invalid --req-interval: %s". The unmarshalled struct is used for
+// the values that unmarshalling already handled correctly (numeric
+// fields, durations, enum-typed fields that don't need extra
+// validation).
 //
-// This stub is filled in by Task 4; for now it only copies the
-// strongly-typed fields so TestConfigUnmarshalFromFlatMap can pass.
+// Behaviour parity with the pre-koanf ParseArgs:
+//   - --until is required.
+//   - --volume is optional; an empty string leaves VolumeFilter as nil.
+//   - --type is optional; an empty string leaves TypeList and
+//     TypeFilters as empty.
+//   - --title accepts a slice (from basicflag/stringListFlag) and
+//     trims/dedups each element. The pre-koanf code also split
+//     single values on commas; that responsibility now lives here
+//     too, so `--title "dragon,spice"` and
+//     `--title "dragon" --title "spice"` both work.
+//   - --req-interval and --limit-wait must be valid durations > 0.
+//   - --max-pages and --concurrency must be positive.
+//   - --mode, --group, --group-sort accept the same set of values.
 func parseRawConfig(k *koanf.Koanf, cfg Config) (Config, error) {
-	_ = k
+	// --until
+	until := k.String("until")
+	if until == "" {
+		return cfg, fmt.Errorf("--until is required")
+	}
+	cutoff, err := time.Parse("2006-01-02", until)
+	if err != nil {
+		return cfg, fmt.Errorf("invalid --until value: %w", err)
+	}
+	cfg.Cutoff = time.Date(cutoff.Year(), cutoff.Month(), cutoff.Day(), 0, 0, 0, 0, time.UTC)
+
+	// --type
+	if typeRaw := k.String("type"); typeRaw != "" {
+		types, err := parseTypeList(typeRaw)
+		if err != nil {
+			return cfg, err
+		}
+		cfg.TypeFilters = make(map[model.PostType]struct{}, len(types))
+		for _, t := range types {
+			cfg.TypeFilters[t] = struct{}{}
+		}
+		cfg.TypeList = types
+	} else {
+		cfg.TypeFilters = make(map[model.PostType]struct{})
+	}
+
+	// --title: each element from the slice may itself be comma-
+	// separated. The pre-koanf code did strings.Join + strings.Split,
+	// which had the same effect. We iterate, split, trim, and skip
+	// empties so `--title " dragon , spice "` produces ["dragon", "spice"].
+	var titles []string
+	for _, raw := range cfg.TitleFilters {
+		for _, part := range strings.Split(raw, ",") {
+			if t := strings.TrimSpace(part); t != "" {
+				titles = append(titles, t)
+			}
+		}
+	}
+	cfg.TitleFilters = titles
+
+	// --volume
+	if v := strings.TrimSpace(k.String("volume")); v != "" {
+		value, err := strconv.ParseFloat(v, 64)
+		if err != nil {
+			return cfg, fmt.Errorf("invalid --volume value: %w", err)
+		}
+		cfg.VolumeFilter = &value
+	}
+
+	// --req-interval / --limit-wait
+	if cfg.ReqInterval <= 0 {
+		return cfg, fmt.Errorf("invalid --req-interval: %s", k.String("req-interval"))
+	}
+	if cfg.LimitWait <= 0 {
+		return cfg, fmt.Errorf("invalid --limit-wait: %s", k.String("limit-wait"))
+	}
+
+	// --max-pages / --concurrency
+	if cfg.MaxPages <= 0 {
+		return cfg, fmt.Errorf("--max-pages must be positive")
+	}
+	if cfg.Concurrency <= 0 {
+		return cfg, fmt.Errorf("--concurrency must be positive")
+	}
+
+	// --mode / --group / --group-sort
+	mode, err := parseMode(k.String("mode"))
+	if err != nil {
+		return cfg, err
+	}
+	cfg.Mode = mode
+
+	groupMode, err := parseGroupMode(k.String("group"))
+	if err != nil {
+		return cfg, err
+	}
+	cfg.GroupMode = groupMode
+
+	groupSort, err := parseGroupSort(k.String("group-sort"))
+	if err != nil {
+		return cfg, err
+	}
+	cfg.GroupSort = groupSort
+
 	return cfg, nil
 }

@@ -6,6 +6,8 @@ import (
 	"time"
 
 	"github.com/knadh/koanf/v2"
+
+	"git.skobk.in/skobkin/jnovel-scrape/internal/model"
 )
 
 // TestKoanfIsImportable locks in that the koanf dependency is wired up.
@@ -43,9 +45,6 @@ func TestConfigKeysAreNonEmpty(t *testing.T) {
 }
 
 func TestConfigUnmarshalFromFlatMap(t *testing.T) {
-	// Build a flat map keyed exactly as koanf would expose it after
-	// defaults+env+flag providers are loaded. Both providers write
-	// strings for scalar fields and []string for slice fields.
 	in := map[string]any{
 		"until":        "2025-02-01",
 		"type":         "epub,pdf",
@@ -65,18 +64,41 @@ func TestConfigUnmarshalFromFlatMap(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unmarshalConfig() unexpected error: %v", err)
 	}
+
+	if cfg.Cutoff.Format("2006-01-02") != "2025-02-01" {
+		t.Fatalf("Cutoff: got %v", cfg.Cutoff)
+	}
+	if len(cfg.TypeList) != 2 || cfg.TypeList[0] != model.TypeEPUB || cfg.TypeList[1] != model.TypePDF {
+		t.Fatalf("TypeList: got %v", cfg.TypeList)
+	}
+	if _, ok := cfg.TypeFilters[model.TypeEPUB]; !ok {
+		t.Fatalf("TypeFilters missing epub: %v", cfg.TypeFilters)
+	}
 	if len(cfg.TitleFilters) != 2 || cfg.TitleFilters[0] != "dragon" || cfg.TitleFilters[1] != "spice" {
 		t.Fatalf("TitleFilters: got %v", cfg.TitleFilters)
+	}
+	if cfg.VolumeFilter == nil || *cfg.VolumeFilter != 3 {
+		t.Fatalf("VolumeFilter: got %v", cfg.VolumeFilter)
+	}
+	if cfg.OutputPath != "result.md" {
+		t.Fatalf("OutputPath: got %q", cfg.OutputPath)
 	}
 	if cfg.Mode != ModeAPI {
 		t.Fatalf("Mode: got %v", cfg.Mode)
 	}
+	if cfg.GroupMode != GroupTitle || cfg.GroupSort != GroupSortDesc {
+		t.Fatalf("Group: got %v / %v", cfg.GroupMode, cfg.GroupSort)
+	}
 	if cfg.MaxPages != 10 {
 		t.Fatalf("MaxPages: got %d", cfg.MaxPages)
+	}
+	if cfg.Concurrency != 2 {
+		t.Fatalf("Concurrency: got %d", cfg.Concurrency)
 	}
 	if cfg.ReqInterval != 150*time.Millisecond {
 		t.Fatalf("ReqInterval: got %v", cfg.ReqInterval)
 	}
-	// Cutoff is still zero here — date parsing is in parseRawConfig (Task 4).
-	_ = cfg.Cutoff
+	if cfg.LimitWait != 300*time.Millisecond {
+		t.Fatalf("LimitWait: got %v", cfg.LimitWait)
+	}
 }
