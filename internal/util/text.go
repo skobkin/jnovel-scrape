@@ -145,8 +145,10 @@ func NormalizeForSearch(s string) string {
 // FoldedWordContains reports whether every token of the needle
 // appears as a complete token in the haystack, after Unicode
 // case-folding and diacritic stripping. A "token" is a maximal
-// run of non-whitespace runes in the normalised string. An
-// empty needle matches anything (mirroring FoldedContains).
+// run of non-whitespace runes in the normalised string with any
+// edge punctuation trimmed off (so "tensei:" and "tensei" match
+// as the same token, but "Re:Zero" stays intact). An empty
+// needle matches anything (mirroring FoldedContains).
 //
 // In word mode the needle is a query like "no game no life" and
 // the haystack is a full post title; the post matches when every
@@ -176,7 +178,7 @@ func FoldedWordContains(haystack, needle string) bool {
 		return false
 	}
 
-	needleTokens := strings.Fields(FoldForSearch(normalisedNeedle))
+	needleTokens := tokenizeFolded(FoldForSearch(normalisedNeedle))
 	if len(needleTokens) == 0 {
 		return true
 	}
@@ -185,7 +187,7 @@ func FoldedWordContains(haystack, needle string) bool {
 	// compare by membership in a set rather than scanning slices
 	// for every needle token, which is O(h + n) instead of
 	// O(h * n) for large titles.
-	haystackTokens := strings.Fields(FoldForSearch(normalisedHaystack))
+	haystackTokens := tokenizeFolded(FoldForSearch(normalisedHaystack))
 	tokenSet := make(map[string]struct{}, len(haystackTokens))
 	for _, t := range haystackTokens {
 		tokenSet[t] = struct{}{}
@@ -198,4 +200,77 @@ func FoldedWordContains(haystack, needle string) bool {
 	}
 
 	return true
+}
+
+// tokenizeFolded splits s on Unicode whitespace and trims any
+// leading or trailing edge punctuation from each field. The
+// function is named "Folded" because callers are expected to pass
+// an already-folded string (it does not apply FoldForSearch
+// itself; that would fold every rune twice when used inside a
+// pipeline that already folded once).
+//
+// "Edge punctuation" is the set of runes for which
+// unicode.IsPunct or unicode.IsSymbol returns true, with one
+// carve-out:
+//   - '\” (ASCII apostrophe and right-single-quote U+2019)
+//     stays inside tokens so "Alice's Adventures" stays a single
+//     token rather than splitting into "Alice" + "s" +
+//     "Adventures". (The leading- or trailing-apostrophe case
+//     is rare in titles, and stripping a stray apostrophe at a
+//     field boundary is fine because the user did not intend it
+//     to be part of the word.)
+//
+// The colon has no special case: a trailing colon in
+// "Mushoku Tensei:" is peeled off (it is at the field
+// boundary), while the internal colon in "Re:Zero" stays
+// because neither edge of the field is a colon. This matches
+// how users parse titles in their head: "Mushoku Tensei:" is
+// two tokens [mushoku, tensei], "Is It Wrong... Dungeon?" is
+// the right number of tokens ending with [dungeon], "Re:Zero"
+// is one token, and "*Sword Art Online*" still parses to
+// [sword, art, online].
+func tokenizeFolded(s string) []string {
+	out := make([]string, 0, 8)
+	field := make([]rune, 0, len(s))
+	flush := func() {
+		if len(field) == 0 {
+			return
+		}
+		start, end := 0, len(field)
+		for start < end && isEdgePunct(field[start]) {
+			start++
+		}
+		for end > start && isEdgePunct(field[end-1]) {
+			end--
+		}
+		if start < end {
+			out = append(out, string(field[start:end]))
+		}
+		field = field[:0]
+	}
+	for _, r := range s {
+		if unicode.IsSpace(r) {
+			flush()
+
+			continue
+		}
+		field = append(field, r)
+	}
+	flush()
+
+	return out
+}
+
+// isEdgePunct reports whether r should be peeled off when it
+// appears at the start or end of a token. The apostrophe
+// carve-out is documented on tokenizeFolded. Colon is NOT
+// carved out — it is stripped from a field boundary (so
+// "tensei:" -> "tensei") but stays inside a field (so
+// "Re:Zero" stays intact).
+func isEdgePunct(r rune) bool {
+	if r == '\'' {
+		return false
+	}
+
+	return unicode.IsPunct(r) || unicode.IsSymbol(r)
 }

@@ -274,3 +274,72 @@ func titles(posts model.Posts) []string {
 
 	return out
 }
+
+// TestFilterPosts_TitleFilterWordModeHandlesAdjacentPunctuation is
+// the regression guard for the post-v0.2.0 bug where titles
+// ending in ":" or "?" produced tokens like "tensei:" and
+// "dungeon?" that never matched a whole-word needle. The bug
+// surfaced in word mode only — substring mode was unaffected
+// because string containment happens to match "tensei" inside
+// "tensei:".
+func TestFilterPosts_TitleFilterWordModeHandlesAdjacentPunctuation(t *testing.T) {
+	cfg := Config{
+		TitleFilters: []string{"mushoku tensei"},
+		TitleMode:    TitleModeWord,
+	}
+	posts := model.Posts{
+		{Title: "Mushoku Tensei: Jobless Reincarnation Volume 1", Date: time.Now()},
+		{Title: "Mushoku Tensei Light Novel Volume 2", Date: time.Now()},
+		{Title: "Sword Art Online Volume 3", Date: time.Now()},
+	}
+	filtered, stats := filterPosts(posts, cfg)
+	if len(filtered) != 2 {
+		t.Fatalf("expected 2 posts (both Mushoku Tensei variants), got %d: %+v", len(filtered), titles(filtered))
+	}
+	if stats.TitleDropped != 1 {
+		t.Fatalf("expected 1 drop, got %d", stats.TitleDropped)
+	}
+}
+
+func TestFilterPosts_TitleFilterWordModeHandlesTrailingQuestionMark(t *testing.T) {
+	cfg := Config{
+		TitleFilters: []string{"dungeon"},
+		TitleMode:    TitleModeWord,
+	}
+	posts := model.Posts{
+		{Title: "Is It Wrong to Try to Pick Up Girls in a Dungeon? Volume 1", Date: time.Now()},
+		{Title: "Is It Wrong to Try to Pick Up Girls in a Dungeon Volume 2", Date: time.Now()},
+		{Title: "Sword Art Online Volume 3", Date: time.Now()},
+	}
+	filtered, stats := filterPosts(posts, cfg)
+	if len(filtered) != 2 {
+		t.Fatalf("expected 2 posts, got %d: %+v", len(filtered), titles(filtered))
+	}
+	if stats.TitleDropped != 1 {
+		t.Fatalf("expected 1 drop, got %d", stats.TitleDropped)
+	}
+}
+
+// TestFilterPosts_TitleFilterSubstringModeUnchanged ensures the
+// word-boundary punctuation fix did not regress substring mode.
+// String containment happens to absorb the trailing ":", "?",
+// and "!" naturally, so substring mode's behaviour should be
+// exactly what it was before the fix.
+func TestFilterPosts_TitleFilterSubstringModeUnchanged(t *testing.T) {
+	cfg := Config{
+		TitleFilters: []string{"tensei"},
+		// TitleMode unset -> defaults to substring.
+	}
+	posts := model.Posts{
+		{Title: "Mushoku Tensei: Jobless Reincarnation Volume 1", Date: time.Now()},
+		{Title: "Mushoku Tensei Light Novel Volume 2", Date: time.Now()},
+		{Title: "Sword Art Online Volume 3", Date: time.Now()},
+	}
+	filtered, stats := filterPosts(posts, cfg)
+	if len(filtered) != 2 {
+		t.Fatalf("substring mode should still match both Tensei variants, got %d", len(filtered))
+	}
+	if stats.TitleDropped != 1 {
+		t.Fatalf("expected 1 drop, got %d", stats.TitleDropped)
+	}
+}

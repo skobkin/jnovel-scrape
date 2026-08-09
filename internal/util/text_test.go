@@ -206,6 +206,41 @@ func TestFoldedWordContains(t *testing.T) {
 		{"needle single token matches diacritic", "Café Stéreo", "cafe", true},
 		{"duplicate needle tokens are collapsed (set semantics)", "No Game No Life", "no no no", true},
 		{"duplicate needle token missing once still succeeds by set membership", "No Game Life", "no no", true},
+		// --- Word-boundary punctuation regression coverage. ---
+		// These cases were reported in a post-release bug report:
+		// titles ending in ":" or "?" were tokenising as
+		// "tensei:" and "dungeon?" rather than "tensei" and
+		// "dungeon", so a whole-token needle never matched.
+		{"trailing colon peeled from word", "Mushoku Tensei: Jobless Reincarnation", "tensei", true},
+		{"trailing question mark peeled from word", "Is It Wrong to Try to Pick Up Girls in a Dungeon?", "dungeon", true},
+		{"trailing colon does not split the prefix", "Mushoku Tensei: Jobless Reincarnation", "mushoku tensei", true},
+		{"trailing question mark does not split the prefix", "Is It Wrong to Try to Pick Up Girls in a Dungeon?", "is it wrong", true},
+		// A title with multiple colons and exclamations parses
+		// each word correctly even when the same title has
+		// glued punctuation in the middle of the description.
+		{"long title with multiple colons", "7th Time Loop: The Villainess Enjoys a Carefree Life Married to Her Worst Enemy! Short Story Collection", "villainess", true},
+		{"em-dash separator produces standalone token", "GATE – Thus the JSDF Fought There", "gate", true},
+		{"em-dash separator also matches the next word", "GATE – Thus the JSDF Fought There", "jsdf", true},
+		// Apostrophes are part of a word; "archdemon's" must
+		// stay as one token rather than splitting into
+		// "archdemon" + "s" or "archdemons".
+		{"apostrophe inside word stays inside", "An Archdemon's Dilemma: How to Love Your Elf Bride", "archdemon's", true},
+		{"leading asterisk peeled from word", "*Sword Art Online*", "sword", true},
+		{"trailing asterisk peeled from word", "*Sword Art Online*", "online", true},
+		{"bracketed prefix is dropped", "[Light Novel] BOFURI", "bofuri", true},
+		{"quoted title drops quotes", "\"Ascendance of a Bookworm\"", "ascendance", true},
+		{"comma between words stripped", "Goodbye, Horrible Fiancé, Hello, Fun Magic School Life!", "hello", true},
+		// Whole-token semantic for a title with internal
+		// punctuation: typing just "re" must NOT match the
+		// single token "re:zero"; the user has to type the
+		// colon themselves. This is consistent with the
+		// "word boundary" intent of the mode.
+		{"internal colon is not a word separator", "Re:Zero - Starting Life in Another World", "re:zero", true},
+		{"internal colon stays inside the token", "Re:Zero - Starting Life in Another World", "re", false},
+		{"internal colon does not split on space either", "Re:Zero - Starting Life in Another World", "re zero", false},
+		// All-punctuation title produces no tokens, so a
+		// non-empty needle cannot match.
+		{"all-punctuation haystack", "???", "anything", false},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -215,6 +250,70 @@ func TestFoldedWordContains(t *testing.T) {
 			}
 		})
 	}
+}
+
+// TestTokenizeFolded probes the helper directly. FoldedWordContains
+// covers the user-visible behaviour; this table pins down the
+// tokeniser's exact output so future changes cannot silently
+// shift the boundaries.
+func TestTokenizeFolded(t *testing.T) {
+	cases := []struct {
+		name string
+		in   string
+		want []string
+	}{
+		{"empty", "", []string{}},
+		{"only whitespace", "   	  ", []string{}},
+		{"ascii words", "hello world", []string{"hello", "world"}},
+		{"trailing colon peeled", "tensei:", []string{"tensei"}},
+		{"trailing question mark peeled", "dungeon?", []string{"dungeon"}},
+		{"trailing exclamation peeled", "wow!", []string{"wow"}},
+		{"trailing period peeled", "ends.", []string{"ends"}},
+		{"trailing semicolon peeled", "shh;", []string{"shh"}},
+		{"trailing comma peeled", "yes,", []string{"yes"}},
+		{"trailing em-dash peeled", "gate –", []string{"gate"}},
+		{"trailing en-dash peeled", "gate –", []string{"gate"}},
+		{"trailing horizontal ellipsis peeled", "wait…", []string{"wait"}},
+		{"trailing hyphen peeled", "pre-", []string{"pre"}},
+		{"trailing asterisk peeled", "*sword*", []string{"sword"}},
+		{"trailing right bracket peeled", "[light]", []string{"light"}},
+		{"trailing double quote peeled", "\"bookworm\"", []string{"bookworm"}},
+		{"leading asterisk peeled", "*sword", []string{"sword"}},
+		{"leading bracket peeled", "[light]", []string{"light"}},
+		{"internal colon preserved", "re:zero", []string{"re:zero"}},
+		{"internal apostrophe preserved", "archdemon's", []string{"archdemon's"}},
+		{"right single quote preserved", "alice\u2019s", []string{"alice\u2019s"}},
+		{"digits preserved", "volume 21", []string{"volume", "21"}},
+		{"only edge punctuation drops the field", "?!", []string{}},
+		{"multiple words with mixed punctuation", "Hello, World! How's it going?",
+			[]string{"Hello", "World", "How's", "it", "going"}},
+		{"nbsp separates fields", "hello\u00a0world", []string{"hello", "world"}},
+		{"ideographic space separates fields", "hello\u3000world", []string{"hello", "world"}},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			got := tokenizeFolded(tc.in)
+			if len(got) == 0 && len(tc.want) == 0 {
+				return
+			}
+			if !slicesEqual(got, tc.want) {
+				t.Fatalf("tokenizeFolded(%q) = %#v, want %#v", tc.in, got, tc.want)
+			}
+		})
+	}
+}
+
+func slicesEqual(a, b []string) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	for i := range a {
+		if a[i] != b[i] {
+			return false
+		}
+	}
+
+	return true
 }
 
 // TestFoldedWordContains_RejectsSubstringNoise demonstrates the
